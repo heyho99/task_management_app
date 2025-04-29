@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タスク管理システム</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        #app {
+            display: flex;
+            min-height: 100vh;
+        }
+        #sidebar {
+            width: 250px;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        #content {
+            flex-grow: 1;
+            padding: 20px;
+        }
+        .nav-link {
+            display: block;
+            padding: 10px;
+            margin-bottom: 5px;
+            text-decoration: none;
+            color: #333;
+            border-radius: 4px;
+        }
+        .nav-link:hover {
+            background-color: #e0e0e0;
+        }
+        .nav-link.active {
+            background-color: #ddd;
+            font-weight: bold;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .create-btn {
+            background-color: #4285F4;
+            color: white;
+        }
+        .update-btn {
+            background-color: #FBBC05;
+            color: white;
+        }
+        .delete-btn {
+            background-color: #EA4335;
+            color: white;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+        .chart-container {
+            margin: 20px 0;
+            height: 300px;
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .login-form {
+            width: 300px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+        }
+        .close {
+            float: right;
+            cursor: pointer;
+            font-size: 1.5em;
+        }
+    </style>
+</head>
+<body>
+    <!-- ログイン画面 -->
+    <div id="login-page" class="login-container">
+        <div class="login-form">
+            <h2>ログイン</h2>
+            <div class="form-group">
+                <label for="username">ユーザー名</label>
+                <input type="text" id="username" name="username">
+            </div>
+            <div class="form-group">
+                <label for="password">パスワード</label>
+                <input type="password" id="password" name="password">
+            </div>
+            <button id="login-btn" class="create-btn">ログイン</button>
+        </div>
+    </div>
+
+    <!-- メインアプリ -->
+    <div id="app" style="display: none;">
+        <!-- サイドバー -->
+        <div id="sidebar">
+            <h2>タスク管理</h2>
+            <nav>
+                <a href="#top" class="nav-link" data-page="top">トップページ</a>
+                <a href="#tasks" class="nav-link" data-page="tasks">タスクページ</a>
+                <a href="#time" class="nav-link" data-page="time">時間ページ</a>
+                <a href="#work" class="nav-link" data-page="work">実績入力ページ</a>
+                <button id="logout-btn" class="delete-btn" style="width: 100%; margin-top: 20px;">ログアウト</button>
+            </nav>
+        </div>
+
+        <!-- コンテンツエリア -->
+        <div id="content">
+            <!-- トップページ -->
+            <div id="top-page" class="page">
+                <h1>トップページ</h1>
+                <div class="chart-container">
+                    <h3>タスク進捗率</h3>
+                    <div id="task-progress-chart">グラフが表示されます</div>
+                </div>
+                <div class="chart-container">
+                    <h3>時間進捗率</h3>
+                    <div id="time-progress-chart">グラフが表示されます</div>
+                </div>
+                <div class="chart-container">
+                    <h3>スケジュール</h3>
+                    <div id="gantt-chart">ガントチャートが表示されます</div>
+                </div>
+            </div>
+
+            <!-- タスクページ -->
+            <div id="tasks-page" class="page">
+                <h1>タスクページ</h1>
+                <button id="create-task-btn" class="create-btn">タスク作成</button>
+                <div class="chart-container">
+                    <h3>タスク進捗状況</h3>
+                    <div id="task-list-chart">グラフが表示されます</div>
+                </div>
+                <table id="task-table">
+                    <thead>
+                        <tr>
+                            <th>タスク名</th>
+                            <th>期限</th>
+                            <th>進捗</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>サンプルタスク1</td>
+                            <td>2025-05-10</td>
+                            <td>50%</td>
+                            <td>
+                                <button class="update-btn task-detail-btn">詳細</button>
+                                <button class="update-btn task-update-btn">修正</button>
+                                <button class="delete-btn task-delete-btn">削除</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>サンプルタスク2</td>
+                            <td>2025-05-15</td>
+                            <td>30%</td>
+                            <td>
+                                <button class="update-btn task-detail-btn">詳細</button>
+                                <button class="update-btn task-update-btn">修正</button>
+                                <button class="delete-btn task-delete-btn">削除</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 時間ページ -->
+            <div id="time-page" class="page">
+                <h1>時間ページ</h1>
+                <div class="chart-container">
+                    <h3>タスク時間分布</h3>
+                    <div id="time-list-chart">グラフが表示されます</div>
+                </div>
+                <table id="time-table">
+                    <thead>
+                        <tr>
+                            <th>タスク名</th>
+                            <th>予定時間</th>
+                            <th>実績時間</th>
+                            <th>残り時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>サンプルタスク1</td>
+                            <td>10時間</td>
+                            <td>5時間</td>
+                            <td>5時間</td>
+                            <td>
+                                <button class="update-btn task-detail-btn">詳細</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>サンプルタスク2</td>
+                            <td>20時間</td>
+                            <td>6時間</td>
+                            <td>14時間</td>
+                            <td>
+                                <button class="update-btn task-detail-btn">詳細</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 実績入力ページ -->
+            <div id="work-page" class="page">
+                <h1>実績入力ページ</h1>
+                <div>
+                    <button id="work-input-btn" class="create-btn">作業実績入力</button>
+                    <button id="time-input-btn" class="create-btn">作業時間入力</button>
+                </div>
+                
+                <h3>作業実績履歴</h3>
+                <table id="work-table">
+                    <thead>
+                        <tr>
+                            <th>日付</th>
+                            <th>タスク名</th>
+                            <th>作業内容</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2025-04-28</td>
+                            <td>サンプルタスク1</td>
+                            <td>設計書作成</td>
+                            <td>
+                                <button class="update-btn work-update-btn">修正</button>
+                                <button class="delete-btn work-delete-btn">削除</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2025-04-29</td>
+                            <td>サンプルタスク2</td>
+                            <td>コーディング</td>
+                            <td>
+                                <button class="update-btn work-update-btn">修正</button>
+                                <button class="delete-btn work-delete-btn">削除</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>時間実績履歴</h3>
+                <table id="work-time-table">
+                    <thead>
+                        <tr>
+                            <th>日付</th>
+                            <th>タスク名</th>
+                            <th>作業時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2025-04-28</td>
+                            <td>サンプルタスク1</td>
+                            <td>3時間</td>
+                            <td>
+                                <button class="update-btn time-update-btn">修正</button>
+                                <button class="delete-btn time-delete-btn">削除</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2025-04-29</td>
+                            <td>サンプルタスク2</td>
+                            <td>4時間</td>
+                            <td>
+                                <button class="update-btn time-update-btn">修正</button>
+                                <button class="delete-btn time-delete-btn">削除</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- モーダル -->
+    <!-- タスク作成モーダル -->
+    <div id="create-task-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>タスク作成</h2>
+            <form id="create-task-form">
+                <div class="form-group">
+                    <label for="task-name">タスク名</label>
+                    <input type="text" id="task-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="task-deadline">期限</label>
+                    <input type="date" id="task-deadline" required>
+                </div>
+                <div class="form-group">
+                    <label for="task-time">予定時間（時間）</label>
+                    <input type="number" id="task-time" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="task-description">説明</label>
+                    <textarea id="task-description" rows="4" style="width: 100%"></textarea>
+                </div>
+                <button type="submit" class="create-btn">作成</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- タスク詳細モーダル -->
+    <div id="task-detail-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>タスク詳細</h2>
+            <div id="task-detail-content">
+                <h3 id="detail-task-name">サンプルタスク1</h3>
+                <p><strong>期限:</strong> <span id="detail-task-deadline">2025-05-10</span></p>
+                <p><strong>進捗:</strong> <span id="detail-task-progress">50%</span></p>
+                <p><strong>予定時間:</strong> <span id="detail-task-planned-time">10時間</span></p>
+                <p><strong>実績時間:</strong> <span id="detail-task-actual-time">5時間</span></p>
+                <p><strong>残り時間:</strong> <span id="detail-task-remaining-time">5時間</span></p>
+                <p><strong>説明:</strong></p>
+                <p id="detail-task-description">タスクの詳細説明がここに表示されます。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- タスク更新モーダル -->
+    <div id="task-update-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>タスク更新</h2>
+            <form id="update-task-form">
+                <div class="form-group">
+                    <label for="update-task-name">タスク名</label>
+                    <input type="text" id="update-task-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="update-task-deadline">期限</label>
+                    <input type="date" id="update-task-deadline" required>
+                </div>
+                <div class="form-group">
+                    <label for="update-task-time">予定時間（時間）</label>
+                    <input type="number" id="update-task-time" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="update-task-progress">進捗（％）</label>
+                    <input type="number" id="update-task-progress" min="0" max="100" required>
+                </div>
+                <div class="form-group">
+                    <label for="update-task-description">説明</label>
+                    <textarea id="update-task-description" rows="4" style="width: 100%"></textarea>
+                </div>
+                <button type="submit" class="update-btn">更新</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- タスク削除確認モーダル -->
+    <div id="task-delete-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>タスク削除</h2>
+            <p>本当にこのタスクを削除しますか？</p>
+            <p id="delete-task-name">サンプルタスク1</p>
+            <button id="confirm-delete-task" class="delete-btn">削除</button>
+            <button id="cancel-delete-task" class="update-btn">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- 作業実績入力モーダル -->
+    <div id="work-input-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>作業実績入力</h2>
+            <form id="work-input-form">
+                <div class="form-group">
+                    <label for="work-date">日付</label>
+                    <input type="date" id="work-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="work-task">タスク</label>
+                    <select id="work-task" required>
+                        <option value="">選択してください</option>
+                        <option value="1">サンプルタスク1</option>
+                        <option value="2">サンプルタスク2</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="work-content">作業内容</label>
+                    <textarea id="work-content" rows="4" style="width: 100%" required></textarea>
+                </div>
+                <button type="submit" class="create-btn">登録</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 作業時間入力モーダル -->
+    <div id="time-input-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>作業時間入力</h2>
+            <form id="time-input-form">
+                <div class="form-group">
+                    <label for="time-date">日付</label>
+                    <input type="date" id="time-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="time-task">タスク</label>
+                    <select id="time-task" required>
+                        <option value="">選択してください</option>
+                        <option value="1">サンプルタスク1</option>
+                        <option value="2">サンプルタスク2</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="time-hours">作業時間（時間）</label>
+                    <input type="number" id="time-hours" min="0.5" step="0.5" required>
+                </div>
+                <button type="submit" class="create-btn">登録</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 作業実績更新モーダル -->
+    <div id="work-update-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>作業実績修正</h2>
+            <form id="work-update-form">
+                <div class="form-group">
+                    <label for="update-work-date">日付</label>
+                    <input type="date" id="update-work-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="update-work-task">タスク</label>
+                    <select id="update-work-task" required>
+                        <option value="">選択してください</option>
+                        <option value="1">サンプルタスク1</option>
+                        <option value="2">サンプルタスク2</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="update-work-content">作業内容</label>
+                    <textarea id="update-work-content" rows="4" style="width: 100%" required></textarea>
+                </div>
+                <button type="submit" class="update-btn">更新</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 作業時間更新モーダル -->
+    <div id="time-update-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>作業時間修正</h2>
+            <form id="time-update-form">
+                <div class="form-group">
+                    <label for="update-time-date">日付</label>
+                    <input type="date" id="update-time-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="update-time-task">タスク</label>
+                    <select id="update-time-task" required>
+                        <option value="">選択してください</option>
+                        <option value="1">サンプルタスク1</option>
+                        <option value="2">サンプルタスク2</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="update-time-hours">作業時間（時間）</label>
+                    <input type="number" id="update-time-hours" min="0.5" step="0.5" required>
+                </div>
+                <button type="submit" class="update-btn">更新</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 作業実績削除確認モーダル -->
+    <div id="work-delete-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>作業実績削除</h2>
+            <p>本当にこの作業実績を削除しますか？</p>
+            <p id="delete-work-content">設計書作成</p>
+            <button id="confirm-delete-work" class="delete-btn">削除</button>
+            <button id="cancel-delete-work" class="update-btn">キャンセル</button>
+        </div>
+    </div>
+
+    <!-- 作業時間削除確認モーダル -->
+    <div id="time-delete-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>作業時間削除</h2>
+            <p>本当にこの作業時間を削除しますか？</p>
+            <p id="delete-time-content">サンプルタスク1 - 3時間</p>
+            <button id="confirm-delete-time" class="delete-btn">削除</button>
+            <button id="cancel-delete-time" class="update-btn">キャンセル</button>
+        </div>
+    </div>
+
+    <script>
+        // ページ遷移を管理する関数
+        function navigateTo(pageId) {
+            // すべてのページを非表示にする
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // 指定されたページを表示する
+            const targetPage = document.getElementById(pageId + '-page');
+            if (targetPage) {
+                targetPage.classList.add('active');
+                
+                // アクティブなナビゲーションリンクを更新
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('data-page') === pageId) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        }
+
+        // モーダルを表示する関数
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        // モーダルを非表示にする関数
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // ページ読み込み時の処理
+        document.addEventListener('DOMContentLoaded', function() {
+            // ログイン処理
+            document.getElementById('login-btn').addEventListener('click', function() {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                // 簡易的な認証（実際の実装ではサーバーでの認証が必要）
+                if (username && password) {
+                    document.getElementById('login-page').style.display = 'none';
+                    document.getElementById('app').style.display = 'flex';
+                    navigateTo('top');
+                } else {
+                    alert('作業時間が登録されました！');
+                hideModal('time-input-modal');
+            };
+
+            // 作業実績更新フォームの送信処理
+            document.getElementById('work-update-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                // ここで作業実績更新の処理を行う
+                alert('作業実績が更新されました！');
+                hideModal('work-update-modal');
+            });
+
+            // 作業時間更新フォームの送信処理
+            document.getElementById('time-update-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                // ここで作業時間更新の処理を行う
+                alert('作業時間が更新されました！');
+                hideModal('time-update-modal');
+            });
+
+            // 作業実績削除の確認
+            document.getElementById('confirm-delete-work').addEventListener('click', function() {
+                // ここで作業実績削除の処理を行う
+                alert('作業実績が削除されました！');
+                hideModal('work-delete-modal');
+            });
+
+            // 作業実績削除のキャンセル
+            document.getElementById('cancel-delete-work').addEventListener('click', function() {
+                hideModal('work-delete-modal');
+            });
+
+            // 作業時間削除の確認
+            document.getElementById('confirm-delete-time').addEventListener('click', function() {
+                // ここで作業時間削除の処理を行う
+                alert('作業時間が削除されました！');
+                hideModal('time-delete-modal');
+            });
+
+            // 作業時間削除のキャンセル
+            document.getElementById('cancel-delete-time').addEventListener('click', function() {
+                hideModal('time-delete-modal');
+            });
+
+            // 初期表示はトップページ
+            navigateTo('top');
+        });
+
+        // データの仮実装（実際のアプリケーションではAPIから取得するなどの実装が必要）
+        const tasks = [
+            { id: 1, name: 'サンプルタスク1', deadline: '2025-05-10', progress: 50, plannedTime: 10, actualTime: 5, description: 'タスク1の詳細説明' },
+            { id: 2, name: 'サンプルタスク2', deadline: '2025-05-15', progress: 30, plannedTime: 20, actualTime: 6, description: 'タスク2の詳細説明' }
+        ];
+
+        const workRecords = [
+            { id: 1, date: '2025-04-28', taskId: 1, content: '設計書作成' },
+            { id: 2, date: '2025-04-29', taskId: 2, content: 'コーディング' }
+        ];
+
+        const timeRecords = [
+            { id: 1, date: '2025-04-28', taskId: 1, hours: 3 },
+            { id: 2, date: '2025-04-29', taskId: 2, hours: 4 }
+        ];
+
+        // グラフ描画のダミー関数（実際のアプリケーションではChart.jsなどのライブラリを使用）
+        function drawTaskProgressChart() {
+            const chartElement = document.getElementById('task-progress-chart');
+            chartElement.innerHTML = 'タスク進捗率のグラフ (実際のアプリケーションではChart.jsなどを使用)';
+        }
+
+        function drawTimeProgressChart() {
+            const chartElement = document.getElementById('time-progress-chart');
+            chartElement.innerHTML = '時間進捗率のグラフ (実際のアプリケーションではChart.jsなどを使用)';
+        }
+
+        function drawGanttChart() {
+            const chartElement = document.getElementById('gantt-chart');
+            chartElement.innerHTML = 'ガントチャート (実際のアプリケーションではGoogle Chartsなどを使用)';
+        }
+
+        function drawTaskListChart() {
+            const chartElement = document.getElementById('task-list-chart');
+            chartElement.innerHTML = 'タスク一覧のグラフ (実際のアプリケーションではChart.jsなどを使用)';
+        }
+
+        function drawTimeListChart() {
+            const chartElement = document.getElementById('time-list-chart');
+            chartElement.innerHTML = 'タスク時間のグラフ (実際のアプリケーションではChart.jsなどを使用)';
+        }
+
+        // グラフ描画の初期化
+        window.onload = function() {
+            drawTaskProgressChart();
+            drawTimeProgressChart();
+            drawGanttChart();
+            drawTaskListChart();
+            drawTimeListChart();
+        };
+    </script>
+</body>
+</html>('ユーザー名とパスワードを入力してください。');
+                }
+            });
+
+            // ログアウト処理
+            document.getElementById('logout-btn').addEventListener('click', function() {
+                document.getElementById('login-page').style.display = 'flex';
+                document.getElementById('app').style.display = 'none';
+            });
+
+            // ナビゲーションリンクのクリックイベント
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const pageId = this.getAttribute('data-page');
+                    navigateTo(pageId);
+                });
+            });
+
+            // モーダルを閉じるボタンのイベント
+            document.querySelectorAll('.close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', function() {
+                    this.closest('.modal').style.display = 'none';
+                });
+            });
+
+            // タスク作成ボタン
+            document.getElementById('create-task-btn').addEventListener('click', function() {
+                showModal('create-task-modal');
+            });
+
+            // タスク詳細ボタン
+            document.querySelectorAll('.task-detail-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    showModal('task-detail-modal');
+                });
+            });
+
+            // タスク更新ボタン
+            document.querySelectorAll('.task-update-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    showModal('task-update-modal');
+                });
+            });
+
+            // タスク削除ボタン
+            document.querySelectorAll('.task-delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    showModal('task-delete-modal');
+                });
+            });
+
+            // 作業実績入力ボタン
+            document.getElementById('work-input-btn').addEventListener('click', function() {
+                showModal('work-input-modal');
+            });
+
+            // 作業時間入力ボタン
+            document.getElementById('time-input-btn').addEventListener('click', function() {
+                showModal('time-input-modal');
+            });
+
+            // 作業実績更新ボタン
+            document.querySelectorAll('.work-update-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    showModal('work-update-modal');
+                });
+            });
+
+            // 作業時間更新ボタン
+            document.querySelectorAll('.time-update-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    showModal('time-update-modal');
+                });
+            });
+
+            // 作業実績削除ボタン
+            document.querySelectorAll('.work-delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    showModal('work-delete-modal');
+                });
+            });
+
+            // 作業時間削除ボタン
+            document.querySelectorAll('.time-delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    showModal('time-delete-modal');
+                });
+            });
+
+            // タスク作成フォームの送信処理
+            document.getElementById('create-task-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                // ここでタスク作成の処理を行う
+                alert('タスクが作成されました！');
+                hideModal('create-task-modal');
+            });
+
+            // タスク更新フォームの送信処理
+            document.getElementById('update-task-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                // ここでタスク更新の処理を行う
+                alert('タスクが更新されました！');
+                hideModal('task-update-modal');
+            });
+
+            // タスク削除の確認
+            document.getElementById('confirm-delete-task').addEventListener('click', function() {
+                // ここでタスク削除の処理を行う
+                alert('タスクが削除されました！');
+                hideModal('task-delete-modal');
+            });
+
+            // タスク削除のキャンセル
+            document.getElementById('cancel-delete-task').addEventListener('click', function() {
+                hideModal('task-delete-modal');
+            });
+
+            // 作業実績入力フォームの送信処理
+            document.getElementById('work-input-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                // ここで作業実績入力の処理を行う
+                alert('作業実績が登録されました！');
+                hideModal('work-input-modal');
+            });
