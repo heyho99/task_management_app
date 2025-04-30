@@ -1,0 +1,124 @@
+task_management_app/
+├── .github/
+│   └── workflows/          # GitHub Actions CI/CD workflows
+│       └── deploy.yml      # 例: デプロイ用ワークフロー
+├── database/               # DBスキーマ定義、マイグレーション関連
+│   ├── migrations/         # マイグレーションスクリプト (Alembicなどを使用する場合)
+│   ├── init.sql            # 初期テーブル作成用SQL (開発用など)
+│   └── README.md           # DBスキーマに関する説明
+├── docs/                   # プロジェクトドキュメント
+│   ├── api/                # API仕様書 (OpenAPI/Swagger など)
+│   │   ├── auth.yaml
+│   │   ├── task.yaml
+│   │   ├── time.yaml
+│   │   ├── group.yaml
+│   │   └── report.yaml
+│   └── design/             # 設計資料、アーキテクチャ図など
+├── services/               # 各マイクロサービス
+│   ├── api-gateway/        # API Gateway (Nginx, Kong, or 自作など)
+│   │   ├── config/         # 設定ファイル (例: nginx.conf)
+│   │   └── Dockerfile      # API Gatewayコンテナ用
+│   │
+│   ├── auth-service/       # 認証サービス (FastAPI)
+│   │   ├── app/            # FastAPIアプリケーションコード
+│   │   │   ├── main.py     # FastAPIインスタンス化、ルーター設定
+│   │   │   ├── api/        # APIエンドポイント (ルーター)
+│   │   │   │   └── v1/
+│   │   │   │       └── auth.py
+│   │   │   ├── crud/       # DB操作ロジック
+│   │   │   │   └── user.py
+│   │   │   ├── models/     # DBテーブルモデル (SQLAlchemyなど)
+│   │   │   │   └── user.py
+│   │   │   ├── schemas/    # データ検証スキーマ (Pydantic)
+│   │   │   │   └── user.py
+│   │   │   ├── core/       # 設定、共通関数など
+│   │   │   │   ├── config.py
+│   │   │   │   └── security.py # パスワードハッシュ化、JWTなど
+│   │   │   └── db/         # DBセッション管理など
+│   │   │       └── session.py
+│   │   ├── tests/          # テストコード
+│   │   ├── Dockerfile      # 認証サービスコンテナ用
+│   │   └── requirements.txt # Python依存ライブラリ
+│   │
+│   ├── task-service/       # タスク管理サービス (FastAPI)
+│   │   ├── app/            # (auth-serviceと同様の構成)
+│   │   │   ├── api/
+│   │   │   │   └── v1/
+│   │   │   │       ├── tasks.py
+│   │   │   │       └── subtasks.py
+│   │   │   ├── crud/
+│   │   │   ├── models/     # tasks, subtasks, daily_task_plans, record_works テーブル等
+│   │   │   ├── schemas/
+│   │   │   ├── core/
+│   │   │   └── db/
+│   │   ├── tests/
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   │
+│   ├── time-service/       # 時間管理サービス (FastAPI)
+│   │   ├── app/            # (auth-serviceと同様の構成)
+│   │   │   ├── api/
+│   │   │   │   └── v1/
+│   │   │   │       └── work_times.py
+│   │   │   ├── crud/
+│   │   │   ├── models/     # work_times, daily_time_plans テーブル等
+│   │   │   ├── schemas/
+│   │   │   ├── core/
+│   │   │   └── db/
+│   │   ├── tests/
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   │
+│   ├── group-service/      # グループ・権限管理サービス (FastAPI)
+│   │   ├── app/            # (auth-serviceと同様の構成)
+│   │   │   ├── api/
+│   │   │   │   └── v1/
+│   │   │   │       ├── groups.py
+│   │   │   │       └── task_auth.py
+│   │   │   ├── crud/
+│   │   │   ├── models/     # groups, user_group, task_auth テーブル等
+│   │   │   ├── schemas/
+│   │   │   ├── core/
+│   │   │   └── db/
+│   │   ├── tests/
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   │
+│   ├── report-service/     # レポート作成サービス (FastAPI)
+│   │   ├── app/            # (auth-serviceと同様の構成)
+│   │   │   ├── api/
+│   │   │   │   └── v1/
+│   │   │   │       └── reports.py
+│   │   │   ├── services/   # PDF生成などのコアロジック
+│   │   │   │   └── pdf_generator.py
+│   │   │   ├── core/
+│   │   │   └── db/         # 必要に応じて他サービスのデータを参照
+│   │   ├── tests/
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   │
+│   ├── line-bot-service/   # LINE Bot連携サービス (FastAPI or 他のフレームワーク)
+│   │   ├── app/            # Botロジック、Webhookハンドラーなど
+│   │   ├── services/       # 他サービスAPIとの連携ロジック
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   │
+│   └── frontend/           # フロントエンド (初期: HTML/JS, 将来: TypeScript/Framework)
+│       ├── src/
+│       │   ├── index.html
+│       │   ├── js/
+│       │   │   ├── api.js      # APIコール用ラッパーなど
+│       │   │   ├── auth.js
+│       │   │   ├── tasks.js
+│       │   │   └── main.js
+│       │   ├── css/
+│       │   │   └── style.css
+│       │   └── assets/     # 画像など
+│       ├── Dockerfile      # (Nginxなどで静的ファイルを配信する場合)
+│       ├── package.json    # (TypeScript/Framework導入時)
+│       └── tsconfig.json   # (TypeScript導入時)
+│
+├── .dockerignore           # Dockerビルド時に除外するファイル
+├── .gitignore              # Gitで追跡しないファイル
+├── docker-compose.yml      # 開発・テスト環境用のDocker Compose設定
+└── README.md               # プロジェクト概要、セットアップ方法、使い方など
