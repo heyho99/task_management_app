@@ -9,28 +9,20 @@
 
 ## データベーススキーマ
 
-アプリケーションは以下のデータベースを使用します：
+アプリケーションは単一のデータベース**task_management_db**を使用し、以下のテーブルが含まれます：
 
-1. **auth_db** - ユーザー認証関連の情報
-   - `users` - ユーザー情報
+- `users` - ユーザー情報
+- `groups` - グループ情報
+- `user_group` - ユーザーとグループの関連付け
+- `tasks` - タスク情報
+- `task_auth` - タスクの権限設定
+- `daily_task_plans` - 日次タスク計画
+- `subtasks` - サブタスク情報
+- `record_works` - 作業記録
+- `work_times` - 作業時間の記録
+- `daily_time_plans` - 日次時間計画
 
-2. **task_db** - タスク管理関連の情報
-   - `tasks` - タスク情報
-   - `subtasks` - サブタスク情報
-   - `daily_task_plans` - 日次タスク計画
-   - `record_works` - 作業記録
-
-3. **time_db** - 時間管理関連の情報
-   - `work_times` - 作業時間の記録
-   - `daily_time_plans` - 日次時間計画
-
-4. **group_db** - グループと権限管理関連の情報
-   - `groups` - グループ情報
-   - `user_group` - ユーザーとグループの関連付け
-   - `task_auth` - タスクの権限設定
-
-5. **report_db** - レポート関連の情報
-   - `reports` - レポート情報
+各テーブルの詳細は `docs/design/er_diagram.md` を参照してください。
 
 ## マイグレーション実行方法
 
@@ -42,4 +34,15 @@ alembic revision --autogenerate -m "Migration message"
 
 # マイグレーションを実行する
 alembic upgrade head
-``` 
+```
+
+## データベースの起動方法
+
+Dockerを使用してデータベースを起動するには：
+
+```bash
+# プロジェクトのルートディレクトリで実行
+docker-compose up db
+```
+
+これにより、PostgreSQLデータベースが起動し、`init.sql`スクリプトによって必要なテーブルが自動的に作成されます。 

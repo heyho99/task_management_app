@@ -21,7 +21,7 @@ services:
     ports:
       - "8001:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/auth_db
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/task_management_db
     depends_on:
       - db
     networks:
@@ -32,7 +32,7 @@ services:
     ports:
       - "8002:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/task_db
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/task_management_db
     depends_on:
       - db
     networks:
@@ -43,7 +43,7 @@ services:
     ports:
       - "8003:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/time_db
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/task_management_db
     depends_on:
       - db
     networks:
@@ -54,7 +54,7 @@ services:
     ports:
       - "8004:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/group_db
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/task_management_db
     depends_on:
       - db
     networks:
@@ -65,7 +65,7 @@ services:
     ports:
       - "8005:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/report_db
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/task_management_db
     depends_on:
       - db
     networks:
@@ -97,7 +97,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_MULTIPLE_DATABASES=auth_db,task_db,time_db,group_db,report_db
+      - POSTGRES_DB=task_management_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
