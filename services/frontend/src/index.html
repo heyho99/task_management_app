@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<!-- 
+このHTMLファイルはタスク管理アプリのフロントエンドの基本構造を定義しています。
+主な構成要素:
+1. ログイン画面 - ユーザー認証用のフォーム
+2. メイン画面 - サイドバーとコンテンツエリアを含む
+3. 各種ページ（トップ、タスク、時間、実績入力）
+4. モーダルウィンドウ
+
+このアプリはAuth, Tasks, Work, Timeなどのモジュールを使用して
+バックエンドAPIと通信し、タスク管理機能を提供します。
+-->
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タスク管理アプリ</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- ログイン画面 -->
+    <div id="login-screen" class="screen">
+        <div class="container">
+            <h1>タスク管理アプリ</h1>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">ユーザー名</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">パスワード</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn">ログイン</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- メイン画面 (全画面共通のサイドバーを含む) -->
+    <div id="main-app" class="screen hidden">
+        <!-- サイドバー -->
+        <div id="sidebar">
+            <div class="logo">タスク管理アプリ</div>
+            <nav>
+                <ul>
+                    <li><a href="#" data-screen="top-page">トップページ</a></li>
+                    <li><a href="#" data-screen="task-page">タスクページ</a></li>
+                    <li><a href="#" data-screen="time-page">時間ページ</a></li>
+                    <li><a href="#" data-screen="work-page">実績入力ページ</a></li>
+                    <li><a href="#" id="logout-btn">ログアウト</a></li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- コンテンツエリア -->
+        <div id="content">
+            <!-- トップページ -->
+            <div id="top-page" class="page">
+                <h1>トップページ</h1>
+                <div class="dashboard-widgets">
+                    <div class="widget">
+                        <h2>タスク進捗率</h2>
+                        <div class="chart" id="task-progress-chart"></div>
+                    </div>
+                    <div class="widget">
+                        <h2>タスク時間進捗率</h2>
+                        <div class="chart" id="time-progress-chart"></div>
+                    </div>
+                    <div class="widget">
+                        <h2>スケジュール</h2>
+                        <div class="chart" id="schedule-chart"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- タスクページ -->
+            <div id="task-page" class="page hidden">
+                <h1>タスクページ</h1>
+                <button id="create-task-btn" class="btn">タスク作成</button>
+                <div id="task-list">
+                    <!-- タスク一覧がここに表示される -->
+                </div>
+            </div>
+
+            <!-- 時間ページ -->
+            <div id="time-page" class="page hidden">
+                <h1>時間ページ</h1>
+                <div id="time-list">
+                    <!-- タスク時間一覧がここに表示される -->
+                </div>
+            </div>
+
+            <!-- 実績入力ページ -->
+            <div id="work-page" class="page hidden">
+                <h1>実績入力ページ</h1>
+                <div class="work-section">
+                    <h2>作業実績履歴</h2>
+                    <button id="add-work-btn" class="btn">作業実績入力</button>
+                    <div id="work-list">
+                        <!-- 作業実績一覧がここに表示される -->
+                    </div>
+                </div>
+                <div class="work-section">
+                    <h2>時間実績履歴</h2>
+                    <button id="add-time-btn" class="btn">作業時間入力</button>
+                    <div id="time-record-list">
+                        <!-- 時間実績一覧がここに表示される -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- モーダル -->
+    <div id="modal" class="hidden">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <!-- JavaScriptファイル -->
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/time.js"></script>
+    <script src="js/work.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html> 

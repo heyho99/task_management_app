@@ -45,7 +45,7 @@
 1. リポジトリのクローン:
 
 ```bash
-git clone https://github.com/yourusername/task_management_app.git
+git clone https://github.com/heyho99/task_management_app.git
 cd task_management_app
 ```
 
