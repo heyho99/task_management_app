@@ -1,6 +1,13 @@
+-- コマンドメモ（消さない）
+-- docker exec -it task-management-db-1 psql -U postgres -d task_management_db
+-- \dt でテーブル一覧確認
+-- \d テーブル名 でテーブル詳細確認
+-- \c データベース名 でデータベース切り替え
+-- \q で抜ける
+
 -- ER図に基づく初期データベースセットアップスクリプト
 
--- 単一のデータベースを作成
+-- 単一のデータベースを作成（Dockerコンテナでは既に作成済み）
 CREATE DATABASE task_management_db;
 \c task_management_db;
 
