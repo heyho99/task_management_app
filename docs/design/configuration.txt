@@ -120,5 +120,5 @@ task_management_app/
 │
 ├── .dockerignore           # Dockerビルド時に除外するファイル
 ├── .gitignore              # Gitで追跡しないファイル
-├── docker-compose.yml      # 開発・テスト環境用のDocker Compose設定
+├── docker-compose.yml      # 単一DB作成
 └── README.md               # プロジェクト概要、セットアップ方法、使い方など

@@ -1,111 +1,23 @@
 version: '3.8'
 
 services:
-  api-gateway:
-    build: ./services/api-gateway
-    ports:
-      - "8000:80"
-    depends_on:
-      - auth-service
-      - task-service
-      - time-service
-      - group-service
-      - report-service
-    volumes:
-      - ./services/api-gateway/config:/etc/nginx/conf.d
-    networks:
-      - app-network
-
-  auth-service:
-    build: ./services/auth-service
-    ports:
-      - "8001:8000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/task_management_db
-    depends_on:
-      - db
-    networks:
-      - app-network
-
-  task-service:
-    build: ./services/task-service
-    ports:
-      - "8002:8000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/task_management_db
-    depends_on:
-      - db
-    networks:
-      - app-network
-
-  time-service:
-    build: ./services/time-service
-    ports:
-      - "8003:8000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/task_management_db
-    depends_on:
-      - db
-    networks:
-      - app-network
-
-  group-service:
-    build: ./services/group-service
-    ports:
-      - "8004:8000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/task_management_db
-    depends_on:
-      - db
-    networks:
-      - app-network
-
-  report-service:
-    build: ./services/report-service
-    ports:
-      - "8005:8000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/task_management_db
-    depends_on:
-      - db
-    networks:
-      - app-network
-
-  line-bot-service:
-    build: ./services/line-bot-service
-    ports:
-      - "8006:8000"
-    environment:
-      - LINE_CHANNEL_SECRET=your_line_channel_secret
-      - LINE_CHANNEL_ACCESS_TOKEN=your_line_channel_access_token
-    networks:
-      - app-network
-
-  frontend:
-    build: ./services/frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - api-gateway
-    networks:
-      - app-network
-
-  db:
+  postgres:
     image: postgres:13
+    container_name: task-management-postgres
     ports:
       - "5432:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=task_management_db
+      - POSTGRES_DB=postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - app-network
+      - postgres-network
 
 networks:
-  app-network:
+  postgres-network:
     driver: bridge
 
 volumes:
