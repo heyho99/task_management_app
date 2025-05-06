@@ -37,6 +37,7 @@ task_management_app/
 │   │   │   └── db/         # DBセッション管理など
 │   │   │       └── session.py
 │   │   ├── tests/          # テストコード
+│   │   ├── docker-compose.yml  
 │   │   ├── Dockerfile      # 認証サービスコンテナ用
 │   │   └── requirements.txt # Python依存ライブラリ
 │   │
@@ -52,6 +53,7 @@ task_management_app/
 │   │   │   ├── core/
 │   │   │   └── db/
 │   │   ├── tests/
+│   │   ├── docker-compose.yml  
 │   │   ├── Dockerfile
 │   │   └── requirements.txt
 │   │
@@ -66,6 +68,7 @@ task_management_app/
 │   │   │   ├── core/
 │   │   │   └── db/
 │   │   ├── tests/
+│   │   ├── docker-compose.yml  
 │   │   ├── Dockerfile
 │   │   └── requirements.txt
 │   │
@@ -81,6 +84,7 @@ task_management_app/
 │   │   │   ├── core/
 │   │   │   └── db/
 │   │   ├── tests/
+│   │   ├── docker-compose.yml  
 │   │   ├── Dockerfile
 │   │   └── requirements.txt
 │   │
@@ -94,12 +98,14 @@ task_management_app/
 │   │   │   ├── core/
 │   │   │   └── db/         # 必要に応じて他サービスのデータを参照
 │   │   ├── tests/
+│   │   ├── docker-compose.yml  
 │   │   ├── Dockerfile
 │   │   └── requirements.txt
 │   │
 │   ├── line-bot-service/   # LINE Bot連携サービス (FastAPI or 他のフレームワーク)
 │   │   ├── app/            # Botロジック、Webhookハンドラーなど
 │   │   ├── services/       # 他サービスAPIとの連携ロジック
+│   │   ├── docker-compose.yml  
 │   │   ├── Dockerfile
 │   │   └── requirements.txt
 │   │
@@ -114,6 +120,7 @@ task_management_app/
 │       │   ├── css/
 │       │   │   └── style.css
 │       │   └── assets/     # 画像など
+│   │   ├── docker-compose.yml  
 │       ├── Dockerfile      # (Nginxなどで静的ファイルを配信する場合)
 │       ├── package.json    # (TypeScript/Framework導入時)
 │       └── tsconfig.json   # (TypeScript導入時)

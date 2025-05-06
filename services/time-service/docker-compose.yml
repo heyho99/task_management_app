@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  time-service:
+    build: .
+    ports:
+      - "8003:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@host:5432/taskmanagement
+    volumes:
+      - ./app:/app
+    restart: unless-stopped
+    extra_hosts:
+      - "host:host-gateway"

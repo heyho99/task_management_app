@@ -8,19 +8,6 @@ const Auth = {
     currentUser: null,
     
     /**
-     * テスト用のダミーユーザー
-     */
-    dummyUsers: [
-        { id: 1, username: 'test', password: 'test', name: 'テストユーザー' },
-        { id: 2, username: 'admin', password: 'admin', name: '管理者' }
-    ],
-    
-    /**
-     * テストモード（バックエンドなしでも動作するモード）
-     */
-    testMode: true,
-    
-    /**
      * ログイン済みかどうかのチェック
      * @returns {boolean} ログイン済みの場合はtrue
      */
@@ -35,12 +22,6 @@ const Auth = {
      * @returns {Promise<Object>} ユーザー情報
      */
     async login(username, password) {
-        // テストモードの場合はダミーユーザーでログイン
-        if (this.testMode) {
-            return this.dummyLogin(username, password);
-        }
-        
-        // 本番モード: バックエンドAPIを使用
         try {
             const response = await API.post('/v1/auth/login', { username, password });
             API.setToken(response.access_token);
@@ -50,39 +31,6 @@ const Auth = {
             console.error('ログインエラー:', error);
             throw error;
         }
-    },
-    
-    /**
-     * ダミーログイン処理（テスト用）
-     * @param {string} username - ユーザー名
-     * @param {string} password - パスワード
-     * @returns {Promise<Object>} ユーザー情報
-     */
-    async dummyLogin(username, password) {
-        return new Promise((resolve, reject) => {
-            // ダミーの処理遅延（実際のAPIリクエストを模倣）
-            setTimeout(() => {
-                // ダミーユーザーを検索
-                const user = this.dummyUsers.find(
-                    u => u.username === username && u.password === password
-                );
-                
-                if (user) {
-                    // ダミートークンを生成
-                    const dummyToken = `dummy_token_${user.id}_${Date.now()}`;
-                    API.setToken(dummyToken);
-                    
-                    // ユーザー情報をセット（パスワードは含めない）
-                    const userData = { ...user };
-                    delete userData.password;
-                    this.currentUser = userData;
-                    
-                    resolve(userData);
-                } else {
-                    reject(new Error('ユーザー名またはパスワードが無効です。'));
-                }
-            }, 500); // 0.5秒の遅延
-        });
     },
     
     /**
@@ -107,24 +55,6 @@ const Auth = {
             return this.currentUser;
         }
         
-        // テストモードの場合はダミーユーザー情報を返す
-        if (this.testMode) {
-            // tokenからユーザーIDを抽出（ダミートークンの形式: dummy_token_{userId}_timestamp）
-            const token = API.getToken();
-            if (token && token.startsWith('dummy_token_')) {
-                const userId = parseInt(token.split('_')[2]);
-                const user = this.dummyUsers.find(u => u.id === userId);
-                if (user) {
-                    const userData = { ...user };
-                    delete userData.password;
-                    this.currentUser = userData;
-                    return userData;
-                }
-            }
-            return null;
-        }
-        
-        // 本番モード: バックエンドAPIを使用
         try {
             const user = await API.get('/v1/auth/me');
             this.currentUser = user;

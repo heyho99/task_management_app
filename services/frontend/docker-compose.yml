@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: .
+    ports:
+      - "80:80"
+    volumes:
+      - ./src:/usr/share/nginx/html
+    restart: unless-stopped
+    depends_on:
+      - auth-service
+      - task-service
+      - time-service
+      - group-service
+    extra_hosts:
+      - "host:host-gateway"

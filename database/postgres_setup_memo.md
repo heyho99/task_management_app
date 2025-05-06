@@ -30,6 +30,8 @@ psql -U postgres
 
 ### 基本的なコマンド
 
+psql -h localhost -p 5432 -U postgres -d task_management_db
+
 ```sql
 -- データベース一覧表示
 \l
