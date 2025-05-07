@@ -4,7 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # 環境変数からデータベースURLを取得、デフォルト値はローカル開発用
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/auth_db")
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@host:5432/task_management_db")
 
 # SQLAlchemyエンジンの作成
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
