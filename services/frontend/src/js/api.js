@@ -5,8 +5,8 @@ const API = {
     /**
      * ベースURL
      */
-    baseUrl: '/api',
-    
+    // baseUrl: '/api',
+    baseUrl: 'http://localhost:8001/api',
     /**
      * 認証トークン
      */
@@ -177,7 +177,8 @@ API.demoData = {
 
 // 、Auth.testMode = false と API.testMode = false に設定するだけで実際のAPIに接続できるようになります。
 // テストモード設定
-API.testMode = true;
+// API.testMode = true;
+API.testMode = false;
 
 // 本来のget関数を保存
 API._originalGet = API.get;

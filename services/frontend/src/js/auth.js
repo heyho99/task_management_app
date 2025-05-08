@@ -23,10 +23,25 @@ const Auth = {
      */
     async login(username, password) {
         try {
-            const response = await API.post('/v1/auth/login', { username, password });
-            API.setToken(response.access_token);
-            this.currentUser = response.user;
-            return response.user;
+            // FormDataを使用してフォームデータを送信
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+            
+            const response = await fetch(`${API.baseUrl}/v1/auth/login`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'ログインに失敗しました');
+            }
+            
+            const data = await response.json();
+            API.setToken(data.access_token);
+            this.currentUser = await this.getCurrentUser();
+            return this.currentUser;
         } catch (error) {
             console.error('ログインエラー:', error);
             throw error;
