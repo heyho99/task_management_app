@@ -6,7 +6,7 @@ const API = {
      * ベースURL
      */
     // baseUrl: '/api',
-    baseUrl: 'http://localhost:8001/api',
+    baseUrl: 'http://172.18.108.34:8001/api',
     /**
      * 認証トークン
      */

@@ -9,12 +9,16 @@ services:
     ports:
       - "8001:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@host:5432/task_management_db
+      - DATABASE_URL=postgresql://postgres:postgres@task-management-postgres:5432/task_management_db
       - PYTHONPATH=/app
     volumes:
       - ./app:/app/app
       - ./main.py:/app/main.py
     restart: unless-stopped
-    extra_hosts:
-      - "host:host-gateway"
+    networks:
+      - task-management-network
     command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+networks:
+  task-management-network:
+    external: true

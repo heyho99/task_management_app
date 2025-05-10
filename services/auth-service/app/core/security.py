@@ -22,17 +22,18 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 # パスワードの検証
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password, stored_password):
+    # データベースに保存されているパスワードと直接比較
+    return plain_password == stored_password
 
-# パスワードのハッシュ化
+# パスワードのハッシュ化 (実際にはハッシュ化しない)
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    return password
 
 # ユーザー認証
 def authenticate_user(db: Session, username: str, password: str):
     user = db.query(User).filter(User.username == username).first()
-    if not user or not verify_password(password, user.hashed_password):
+    if not user or not verify_password(password, user.password):
         return False
     return user
 
@@ -69,6 +70,4 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
 # アクティブユーザー取得用の依存性
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
-    if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="ユーザーは無効化されています")
     return current_user 

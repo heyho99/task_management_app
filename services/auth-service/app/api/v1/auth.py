@@ -27,20 +27,11 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
             detail="ユーザー名は既に使用されています"
         )
     
-    # メールアドレスの重複チェック
-    db_user = db.query(UserModel).filter(UserModel.email == user.email).first()
-    if db_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="メールアドレスは既に使用されています"
-        )
-    
     # ユーザーの作成
-    hashed_password = get_password_hash(user.password)
+    password = get_password_hash(user.password)
     db_user = UserModel(
         username=user.username,
-        email=user.email,
-        hashed_password=hashed_password
+        password=password
     )
     db.add(db_user)
     db.commit()
@@ -77,18 +68,8 @@ def update_user(
     db: Session = Depends(get_db),
 ):
     # 更新内容の適用
-    if user_update.email:
-        # メールアドレスの重複チェック
-        db_user = db.query(UserModel).filter(UserModel.email == user_update.email).first()
-        if db_user and db_user.id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="メールアドレスは既に使用されています"
-            )
-        current_user.email = user_update.email
-    
     if user_update.password:
-        current_user.hashed_password = get_password_hash(user_update.password)
+        current_user.password = get_password_hash(user_update.password)
     
     db.commit()
     db.refresh(current_user)
