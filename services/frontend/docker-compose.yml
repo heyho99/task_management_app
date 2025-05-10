@@ -1,17 +1,24 @@
+# docker-compose -f services/frontend/docker-compose.yml up -d
+
 version: '3.8'
 
 services:
   frontend:
+    # 同じディレクトリにあるDockerfileを使用してイメージをビルド
     build: .
     ports:
       - "80:80"
     volumes:
+      # docker-compose.yml ファイルがある場所からの相対パスのsrcディレクトリを
+      # コンテナ内の/usr/share/nginx/htmlディレクトリにマウント
       - ./src:/usr/share/nginx/html
+    # unless-stopped は、ユーザーが明示的にコンテナを停止した場合を除き、
+    # Dockerがコンテナの終了コードが0以外（つまりエラー終了など）であった場合に自動的に再起動する
     restart: unless-stopped
-    depends_on:
-      - auth-service
-      - task-service
-      - time-service
-      - group-service
+    # depends_on:
+    #  - auth-service
+    #  - task-service
+    #  - time-service
+    #  - group-service
     extra_hosts:
       - "host:host-gateway"
