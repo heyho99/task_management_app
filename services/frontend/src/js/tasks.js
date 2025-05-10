@@ -311,4 +311,415 @@ const Tasks = {
             document.getElementById('modal').classList.add('hidden');
         });
     }
-}; 
+};
+
+/**
+ * 初期値計算処理
+ * @param {Object} formData - 入力データ
+ * @returns {Promise} - 計算結果Promise
+ */
+async function calculateInitialValues(formData) {
+    try {
+        const result = await ApiClient.task.calculateInitialValues({
+            start_date: formData.start_date,
+            due_date: formData.due_date,
+            target_time: parseInt(formData.target_time),
+            subtask_count: formData.subtasks.length || 1
+        });
+        return result;
+    } catch (error) {
+        ApiClient.displayError(error);
+        throw error;
+    }
+}
+
+/**
+ * タスク作成ページの初期化
+ */
+function initTaskCreationPage() {
+    const form = document.getElementById('task-create-form');
+    const addSubtaskBtn = document.getElementById('add-subtask');
+    const subtaskContainer = document.getElementById('subtasks-container');
+    const startDateInput = document.getElementById('start-date');
+    const dueDateInput = document.getElementById('due-date');
+    const targetTimeInput = document.getElementById('target-time');
+
+    // サブタスク追加ボタンのイベントリスナー
+    if (addSubtaskBtn) {
+        addSubtaskBtn.addEventListener('click', addSubtaskField);
+    }
+
+    // 日付またはターゲット時間が変更されたら初期値を再計算
+    if (startDateInput && dueDateInput && targetTimeInput) {
+        [startDateInput, dueDateInput, targetTimeInput].forEach(input => {
+            input.addEventListener('change', updateInitialValues);
+        });
+    }
+
+    // フォーム送信イベントリスナー
+    if (form) {
+        form.addEventListener('submit', handleTaskSubmit);
+    }
+
+    // 初期サブタスク追加
+    addSubtaskField();
+}
+
+/**
+ * サブタスクフィールドを追加
+ */
+function addSubtaskField() {
+    const container = document.getElementById('subtasks-container');
+    const subtaskCount = container.getElementsByClassName('subtask-item').length;
+    
+    const subtaskDiv = document.createElement('div');
+    subtaskDiv.className = 'subtask-item mb-3';
+    
+    // サブタスク貢献値の初期値を計算 (均等配分)
+    const contributionValue = Math.floor(100 / (subtaskCount + 1));
+    
+    // サブタスク要素のHTMLを構築
+    subtaskDiv.innerHTML = `
+        <div class="row g-3">
+            <div class="col-md-8">
+                <input type="text" class="form-control subtask-name" placeholder="サブタスク名" required>
+            </div>
+            <div class="col-md-3">
+                <input type="number" class="form-control subtask-contribution" value="${contributionValue}" min="0" max="100" required>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-danger remove-subtask">削除</button>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(subtaskDiv);
+    
+    // 削除ボタンのイベント設定
+    const removeBtn = subtaskDiv.querySelector('.remove-subtask');
+    removeBtn.addEventListener('click', function() {
+        container.removeChild(subtaskDiv);
+        redistributeContributionValues();
+    });
+    
+    // 既存のサブタスクの貢献値を再配分
+    redistributeContributionValues();
+}
+
+/**
+ * サブタスクの貢献値を再分配
+ */
+function redistributeContributionValues() {
+    const container = document.getElementById('subtasks-container');
+    const subtasks = container.getElementsByClassName('subtask-item');
+    const count = subtasks.length;
+    
+    if (count === 0) return;
+    
+    const contributionValue = Math.floor(100 / count);
+    const remainder = 100 - (contributionValue * count);
+    
+    Array.from(subtasks).forEach((subtask, index) => {
+        const input = subtask.querySelector('.subtask-contribution');
+        // 均等配分 + 余りは最後のサブタスクに追加
+        input.value = contributionValue + (index === count - 1 ? remainder : 0);
+    });
+}
+
+/**
+ * 初期値の更新
+ */
+async function updateInitialValues() {
+    const startDate = document.getElementById('start-date').value;
+    const dueDate = document.getElementById('due-date').value;
+    const targetTime = document.getElementById('target-time').value;
+    const subtasksCount = document.getElementById('subtasks-container').getElementsByClassName('subtask-item').length || 1;
+    
+    if (!startDate || !dueDate || !targetTime) return;
+    
+    try {
+        const data = await calculateInitialValues({
+            start_date: startDate,
+            due_date: dueDate,
+            target_time: parseInt(targetTime),
+            subtasks: Array(subtasksCount).fill({}) // ダミーのサブタスク配列
+        });
+        
+        // 計算結果を表示
+        updateDailyTaskPlans(data.daily_task_plans);
+        updateDailyTimePlans(data.daily_time_plans);
+        
+        // サブタスク貢献値の更新
+        updateSubtaskContributions(data.subtask_contribution_value);
+    } catch (error) {
+        console.error('初期値計算エラー:', error);
+    }
+}
+
+/**
+ * 日次作業計画値の更新
+ */
+function updateDailyTaskPlans(dailyTaskPlans) {
+    const container = document.getElementById('daily-task-plans-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    dailyTaskPlans.forEach(plan => {
+        const date = new Date(plan.date);
+        const formattedDate = date.toLocaleDateString('ja-JP');
+        
+        const planDiv = document.createElement('div');
+        planDiv.className = 'daily-task-plan mb-2';
+        planDiv.innerHTML = `
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <input type="date" class="form-control" value="${plan.date}" readonly>
+                </div>
+                <div class="col-md-6">
+                    <input type="number" class="form-control daily-task-plan-value" 
+                           value="${plan.task_plan_value.toFixed(2)}" step="0.01" min="0" max="100" required>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(planDiv);
+    });
+    
+    // 作業計画値変更時のイベント登録
+    const planInputs = container.querySelectorAll('.daily-task-plan-value');
+    planInputs.forEach(input => {
+        input.addEventListener('change', validateDailyTaskPlans);
+    });
+}
+
+/**
+ * 日次作業時間計画値の更新
+ */
+function updateDailyTimePlans(dailyTimePlans) {
+    const container = document.getElementById('daily-time-plans-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    dailyTimePlans.forEach(plan => {
+        const date = new Date(plan.date);
+        const formattedDate = date.toLocaleDateString('ja-JP');
+        
+        const planDiv = document.createElement('div');
+        planDiv.className = 'daily-time-plan mb-2';
+        planDiv.innerHTML = `
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <input type="date" class="form-control" value="${plan.date}" readonly>
+                </div>
+                <div class="col-md-6">
+                    <input type="number" class="form-control daily-time-plan-value" 
+                           value="${plan.time_plan_value.toFixed(2)}" step="0.01" min="0" required>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(planDiv);
+    });
+    
+    // 作業時間計画値変更時のイベント登録
+    const planInputs = container.querySelectorAll('.daily-time-plan-value');
+    planInputs.forEach(input => {
+        input.addEventListener('change', validateDailyTimePlans);
+    });
+}
+
+/**
+ * サブタスク貢献値の更新
+ */
+function updateSubtaskContributions(contributionValue) {
+    const container = document.getElementById('subtasks-container');
+    const subtasks = container.getElementsByClassName('subtask-item');
+    
+    Array.from(subtasks).forEach(subtask => {
+        const input = subtask.querySelector('.subtask-contribution');
+        input.value = contributionValue.toFixed(2);
+    });
+}
+
+/**
+ * 日次作業計画値のバリデーション
+ */
+function validateDailyTaskPlans() {
+    const container = document.getElementById('daily-task-plans-container');
+    const planInputs = container.querySelectorAll('.daily-task-plan-value');
+    const errorElement = document.getElementById('task-plan-error');
+    
+    let total = 0;
+    planInputs.forEach(input => {
+        total += parseFloat(input.value || 0);
+    });
+    
+    // 100に近い値かチェック（浮動小数点の誤差を考慮）
+    const isValid = Math.abs(total - 100) < 0.1;
+    
+    if (errorElement) {
+        errorElement.textContent = isValid ? '' : `日次作業計画値の合計は100にしてください（現在: ${total.toFixed(2)}）`;
+        errorElement.style.display = isValid ? 'none' : 'block';
+    }
+    
+    return isValid;
+}
+
+/**
+ * 日次作業時間計画値のバリデーション
+ */
+function validateDailyTimePlans() {
+    const container = document.getElementById('daily-time-plans-container');
+    const planInputs = container.querySelectorAll('.daily-time-plan-value');
+    const targetTime = parseFloat(document.getElementById('target-time').value || 0);
+    const errorElement = document.getElementById('time-plan-error');
+    
+    let total = 0;
+    planInputs.forEach(input => {
+        total += parseFloat(input.value || 0);
+    });
+    
+    // 目標時間に近い値かチェック（浮動小数点の誤差を考慮）
+    const isValid = Math.abs(total - targetTime) < 0.1;
+    
+    if (errorElement) {
+        errorElement.textContent = isValid ? '' : `日次作業時間計画値の合計は目標作業時間（${targetTime}分）にしてください（現在: ${total.toFixed(2)}分）`;
+        errorElement.style.display = isValid ? 'none' : 'block';
+    }
+    
+    return isValid;
+}
+
+/**
+ * サブタスク貢献値のバリデーション
+ */
+function validateSubtaskContributions() {
+    const container = document.getElementById('subtasks-container');
+    const subtasks = container.getElementsByClassName('subtask-item');
+    const errorElement = document.getElementById('subtask-error');
+    
+    let total = 0;
+    Array.from(subtasks).forEach(subtask => {
+        const input = subtask.querySelector('.subtask-contribution');
+        total += parseFloat(input.value || 0);
+    });
+    
+    // 100に近い値かチェック（浮動小数点の誤差を考慮）
+    const isValid = Math.abs(total - 100) < 0.1;
+    
+    if (errorElement) {
+        errorElement.textContent = isValid ? '' : `サブタスクの作業貢献値の合計は100にしてください（現在: ${total.toFixed(2)}）`;
+        errorElement.style.display = isValid ? 'none' : 'block';
+    }
+    
+    return isValid;
+}
+
+/**
+ * フォーム送信処理
+ * @param {Event} event - イベントオブジェクト
+ */
+async function handleTaskSubmit(event) {
+    event.preventDefault();
+    
+    // バリデーション
+    const isTaskPlansValid = validateDailyTaskPlans();
+    const isTimePlansValid = validateDailyTimePlans();
+    const isSubtasksValid = validateSubtaskContributions();
+    
+    if (!isTaskPlansValid || !isTimePlansValid || !isSubtasksValid) {
+        return;
+    }
+    
+    // フォームデータの収集
+    const formData = {
+        task_name: document.getElementById('task-name').value,
+        task_content: document.getElementById('task-content').value,
+        recent_schedule: document.getElementById('recent-schedule').value,
+        start_date: document.getElementById('start-date').value,
+        due_date: document.getElementById('due-date').value,
+        category: document.getElementById('category').value,
+        target_time: parseInt(document.getElementById('target-time').value),
+        comment: document.getElementById('comment').value || '',
+        
+        // サブタスク情報
+        subtasks: collectSubtasks(),
+        
+        // 日次作業計画値
+        daily_task_plans: collectDailyTaskPlans(),
+        
+        // 日次作業時間計画値
+        daily_time_plans: collectDailyTimePlans()
+    };
+    
+    try {
+        const createdTask = await ApiClient.task.createTask(formData);
+        
+        alert('タスクが正常に作成されました');
+        
+        // タスク一覧ページにリダイレクト
+        window.location.href = '/tasks.html';
+    } catch (error) {
+        ApiClient.displayError(error);
+    }
+}
+
+/**
+ * サブタスク情報の収集
+ * @returns {Array} - サブタスク情報の配列
+ */
+function collectSubtasks() {
+    const container = document.getElementById('subtasks-container');
+    const subtasks = container.getElementsByClassName('subtask-item');
+    
+    return Array.from(subtasks).map(subtask => {
+        return {
+            subtask_name: subtask.querySelector('.subtask-name').value,
+            contribution_value: parseInt(subtask.querySelector('.subtask-contribution').value)
+        };
+    });
+}
+
+/**
+ * 日次作業計画値の収集
+ * @returns {Array} - 日次作業計画値の配列
+ */
+function collectDailyTaskPlans() {
+    const container = document.getElementById('daily-task-plans-container');
+    const plans = container.getElementsByClassName('daily-task-plan');
+    
+    return Array.from(plans).map(plan => {
+        return {
+            date: plan.querySelector('input[type="date"]').value,
+            task_plan_value: parseFloat(plan.querySelector('.daily-task-plan-value').value)
+        };
+    });
+}
+
+/**
+ * 日次作業時間計画値の収集
+ * @returns {Array} - 日次作業時間計画値の配列
+ */
+function collectDailyTimePlans() {
+    const container = document.getElementById('daily-time-plans-container');
+    const plans = container.getElementsByClassName('daily-time-plan');
+    
+    return Array.from(plans).map(plan => {
+        return {
+            date: plan.querySelector('input[type="date"]').value,
+            time_plan_value: parseFloat(plan.querySelector('.daily-time-plan-value').value)
+        };
+    });
+}
+
+// DOMが読み込まれた後にページ初期化
+document.addEventListener('DOMContentLoaded', function() {
+    // URLからページを判定して初期化
+    const path = window.location.pathname;
+    
+    if (path.includes('task-create.html')) {
+        initTaskCreationPage();
+    }
+}); 

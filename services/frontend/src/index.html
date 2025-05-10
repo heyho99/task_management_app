@@ -15,117 +15,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>タスク管理アプリ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
-    <!-- ログイン画面 -->
-    <div id="login-screen" class="screen">
+    <header class="navbar navbar-dark bg-dark">
         <div class="container">
-            <h1>タスク管理アプリ</h1>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="username">ユーザー名</label>
-                    <input type="text" id="username" name="username" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">パスワード</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                <button type="submit" class="btn">ログイン</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- メイン画面 (全画面共通のサイドバーを含む) -->
-    <div id="main-app" class="screen hidden">
-        <!-- サイドバー -->
-        <div id="sidebar">
-            <div class="logo">タスク管理アプリ</div>
-            <nav>
-                <ul>
-                    <li><a href="#" data-screen="top-page">トップページ</a></li>
-                    <li><a href="#" data-screen="task-page">タスクページ</a></li>
-                    <li><a href="#" data-screen="time-page">時間ページ</a></li>
-                    <li><a href="#" data-screen="work-page">実績入力ページ</a></li>
-                    <li><a href="#" id="logout-btn">ログアウト</a></li>
+            <a class="navbar-brand" href="/">タスク管理アプリ</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">トップ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="tasks.html">タスク一覧</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="task-create.html">タスク作成</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="times.html">時間管理</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="work.html">実績入力</a>
+                    </li>
                 </ul>
-            </nav>
+            </div>
         </div>
+    </header>
 
-        <!-- コンテンツエリア -->
-        <div id="content">
-            <!-- トップページ -->
-            <div id="top-page" class="page">
-                <h1>トップページ</h1>
-                <div class="dashboard-widgets">
-                    <div class="widget">
-                        <h2>タスク進捗率</h2>
-                        <div class="chart" id="task-progress-chart"></div>
-                    </div>
-                    <div class="widget">
-                        <h2>タスク時間進捗率</h2>
-                        <div class="chart" id="time-progress-chart"></div>
-                    </div>
-                    <div class="widget">
-                        <h2>スケジュール</h2>
-                        <div class="chart" id="schedule-chart"></div>
+    <main class="container py-4">
+        <h1>タスク管理アプリ</h1>
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">タスク進捗率</div>
+                    <div class="card-body">
+                        <canvas id="taskProgressChart"></canvas>
                     </div>
                 </div>
             </div>
-
-            <!-- タスクページ -->
-            <div id="task-page" class="page hidden">
-                <h1>タスクページ</h1>
-                <button id="create-task-btn" class="btn">タスク作成</button>
-                <div id="task-list">
-                    <!-- タスク一覧がここに表示される -->
-                </div>
-            </div>
-
-            <!-- 時間ページ -->
-            <div id="time-page" class="page hidden">
-                <h1>時間ページ</h1>
-                <div id="time-list">
-                    <!-- タスク時間一覧がここに表示される -->
-                </div>
-            </div>
-
-            <!-- 実績入力ページ -->
-            <div id="work-page" class="page hidden">
-                <h1>実績入力ページ</h1>
-                <div class="work-section">
-                    <h2>作業実績履歴</h2>
-                    <button id="add-work-btn" class="btn">作業実績入力</button>
-                    <div id="work-list">
-                        <!-- 作業実績一覧がここに表示される -->
-                    </div>
-                </div>
-                <div class="work-section">
-                    <h2>時間実績履歴</h2>
-                    <button id="add-time-btn" class="btn">作業時間入力</button>
-                    <div id="time-record-list">
-                        <!-- 時間実績一覧がここに表示される -->
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">時間進捗率</div>
+                    <div class="card-body">
+                        <canvas id="timeProgressChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- モーダル -->
-    <div id="modal" class="hidden">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <div id="modal-content"></div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">スケジュール</div>
+                    <div class="card-body">
+                        <div id="scheduleChart"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
 
-    <!-- JavaScriptファイル -->
+    <footer class="bg-light py-3 mt-auto">
+        <div class="container text-center">
+            <p class="mb-0">&copy; 2023 タスク管理アプリ</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/api.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/tasks.js"></script>
-    <script src="js/time.js"></script>
-    <script src="js/work.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html> 

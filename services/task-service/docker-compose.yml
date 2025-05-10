@@ -1,3 +1,5 @@
+# docker-compose -f services/task-service/docker-compose.yml up -d
+
 version: '3.8'
 
 services:

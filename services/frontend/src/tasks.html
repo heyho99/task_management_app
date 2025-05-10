@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タスク一覧 - タスク管理アプリ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="navbar navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">タスク管理アプリ</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">トップ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="tasks.html">タスク一覧</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="task-create.html">タスク作成</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="times.html">時間管理</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="work.html">実績入力</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <main class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>タスク一覧</h1>
+            <a href="task-create.html" class="btn btn-primary">新規タスク作成</a>
+        </div>
+        
+        <div class="alert alert-danger" id="error-message" style="display: none;"></div>
+        
+        <div class="card">
+            <div class="card-header">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="task-search" placeholder="タスクを検索...">
+                            <button class="btn btn-outline-secondary" type="button" id="search-button">検索</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="task-filter">
+                            <option value="all">すべて表示</option>
+                            <option value="active">進行中</option>
+                            <option value="completed">完了</option>
+                            <option value="overdue">期限超過</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="task-list-container">
+                    <!-- タスクリストがここに表示される -->
+                    <div class="loading">読み込み中...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- タスク詳細モーダル -->
+    <div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="taskModalLabel">タスク詳細</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="task-detail-container">
+                    <!-- タスク詳細がここに表示される -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                    <button type="button" class="btn btn-primary" id="edit-task-btn">編集</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 削除確認モーダル -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">タスク削除の確認</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>このタスクを削除してもよろしいですか？この操作は元に戻せません。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete-btn">削除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-light py-3 mt-auto">
+        <div class="container text-center">
+            <p class="mb-0">&copy; 2023 タスク管理アプリ</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/tasks.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // タスク一覧を表示
+            const taskListContainer = document.getElementById('task-list-container');
+            
+            // タスク一覧表示関数
+            async function displayTasks() {
+                try {
+                    taskListContainer.innerHTML = '<div class="loading">読み込み中...</div>';
+                    
+                    const tasks = await window.ApiClient.task.getTasks();
+                    
+                    if (!tasks || tasks.length === 0) {
+                        taskListContainer.innerHTML = `
+                            <div class="text-center py-5">
+                                <h4>タスクがありません</h4>
+                                <p>新しいタスクを作成してみましょう</p>
+                                <a href="task-create.html" class="btn btn-primary">タスク作成</a>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    const filterValue = document.getElementById('task-filter').value;
+                    const searchValue = document.getElementById('task-search').value.toLowerCase();
+                    
+                    // タスクのフィルタリング
+                    let filteredTasks = tasks;
+                    
+                    // 検索フィルター
+                    if (searchValue) {
+                        filteredTasks = filteredTasks.filter(task => 
+                            task.title.toLowerCase().includes(searchValue) || 
+                            (task.description && task.description.toLowerCase().includes(searchValue))
+                        );
+                    }
+                    
+                    // ステータスフィルター
+                    const today = new Date();
+                    if (filterValue === 'active') {
+                        filteredTasks = filteredTasks.filter(task => task.progress < 100);
+                    } else if (filterValue === 'completed') {
+                        filteredTasks = filteredTasks.filter(task => task.progress === 100);
+                    } else if (filterValue === 'overdue') {
+                        filteredTasks = filteredTasks.filter(task => {
+                            const dueDate = new Date(task.due_date);
+                            return dueDate < today && task.progress < 100;
+                        });
+                    }
+                    
+                    if (filteredTasks.length === 0) {
+                        taskListContainer.innerHTML = '<div class="text-center py-3">条件に一致するタスクがありません</div>';
+                        return;
+                    }
+                    
+                    // タスク一覧HTML生成
+                    const taskListHtml = filteredTasks.map(task => {
+                        const startDate = new Date(task.start_date).toLocaleDateString('ja-JP');
+                        const dueDate = new Date(task.due_date).toLocaleDateString('ja-JP');
+                        const dueDateObj = new Date(task.due_date);
+                        
+                        // 期限切れかどうかを判定
+                        let statusClass = '';
+                        if (task.progress === 100) {
+                            statusClass = 'bg-success';
+                        } else if (dueDateObj < today) {
+                            statusClass = 'bg-danger';
+                        } else if (dueDateObj.getTime() - today.getTime() < 3 * 24 * 60 * 60 * 1000) {
+                            statusClass = 'bg-warning';
+                        }
+                        
+                        return `
+                            <div class="task-item card mb-3 ${statusClass}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="card-title">${task.title}</h5>
+                                        <div class="task-actions">
+                                            <button class="btn btn-sm btn-outline-primary view-task-btn" data-task-id="${task.id}">
+                                                詳細
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger delete-task-btn" data-task-id="${task.id}">
+                                                削除
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="progress mt-2 mb-2">
+                                        <div class="progress-bar" role="progressbar" style="width: ${task.progress}%" 
+                                            aria-valuenow="${task.progress}" aria-valuemin="0" aria-valuemax="100">
+                                            ${task.progress}%
+                                        </div>
+                                    </div>
+                                    <div class="task-dates d-flex justify-content-between">
+                                        <small class="text-muted">開始日: ${startDate}</small>
+                                        <small class="text-muted">期限日: ${dueDate}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    taskListContainer.innerHTML = taskListHtml;
+                    
+                    // イベントリスナーの設定
+                    setupTaskEventListeners();
+                    
+                } catch (error) {
+                    taskListContainer.innerHTML = '<div class="alert alert-danger">タスクの読み込みに失敗しました</div>';
+                    console.error('タスク読み込みエラー:', error);
+                    window.ApiClient.displayError(error);
+                }
+            }
+            
+            // タスク詳細表示
+            async function showTaskDetail(taskId) {
+                try {
+                    const taskDetailContainer = document.getElementById('task-detail-container');
+                    taskDetailContainer.innerHTML = '<div class="loading">読み込み中...</div>';
+                    
+                    const task = await window.ApiClient.task.getTask(taskId);
+                    const taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
+                    
+                    const startDate = new Date(task.start_date).toLocaleDateString('ja-JP');
+                    const dueDate = new Date(task.due_date).toLocaleDateString('ja-JP');
+                    
+                    taskDetailContainer.innerHTML = `
+                        <div class="task-detail" data-task-id="${task.id}">
+                            <h4>${task.title}</h4>
+                            <div class="progress mb-3 mt-3">
+                                <div class="progress-bar" role="progressbar" style="width: ${task.progress}%" 
+                                    aria-valuenow="${task.progress}" aria-valuemin="0" aria-valuemax="100">
+                                    ${task.progress}%
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p><strong>開始日:</strong> ${startDate}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>期限日:</strong> ${dueDate}</p>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <h5>説明</h5>
+                                <p>${task.description || '説明はありません'}</p>
+                            </div>
+                            <div class="mb-3">
+                                <h5>サブタスク</h5>
+                                <div id="subtask-list">
+                                    <div class="loading">読み込み中...</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 編集ボタンにタスクIDを設定
+                    document.getElementById('edit-task-btn').dataset.taskId = task.id;
+                    
+                    taskModal.show();
+                    
+                    // サブタスクの読み込み
+                    try {
+                        const subtasks = await window.ApiClient.task.getSubtasks(task.id);
+                        const subtaskList = document.getElementById('subtask-list');
+                        
+                        if (!subtasks || subtasks.length === 0) {
+                            subtaskList.innerHTML = '<p>サブタスクはありません</p>';
+                            return;
+                        }
+                        
+                        const subtaskHtml = subtasks.map(subtask => {
+                            return `
+                                <div class="card mb-2">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0">${subtask.title}</h6>
+                                            <span class="badge bg-primary">${subtask.contribution_value}%</span>
+                                        </div>
+                                        <div class="progress mt-2">
+                                            <div class="progress-bar" role="progressbar" style="width: ${subtask.progress}%" 
+                                                aria-valuenow="${subtask.progress}" aria-valuemin="0" aria-valuemax="100">
+                                                ${subtask.progress}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                        
+                        subtaskList.innerHTML = subtaskHtml;
+                        
+                    } catch (error) {
+                        document.getElementById('subtask-list').innerHTML = 
+                            '<div class="alert alert-danger">サブタスクの読み込みに失敗しました</div>';
+                        console.error('サブタスク読み込みエラー:', error);
+                    }
+                    
+                } catch (error) {
+                    console.error('タスク詳細表示エラー:', error);
+                    window.ApiClient.displayError(error);
+                }
+            }
+            
+            // タスク削除の確認
+            function confirmDeleteTask(taskId) {
+                const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                document.getElementById('confirm-delete-btn').dataset.taskId = taskId;
+                deleteModal.show();
+            }
+            
+            // タスク削除の実行
+            async function deleteTask(taskId) {
+                try {
+                    await window.ApiClient.task.deleteTask(taskId);
+                    // 削除成功したらタスク一覧を再読み込み
+                    displayTasks();
+                    
+                    // モーダルを閉じる
+                    const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                    if (deleteModal) {
+                        deleteModal.hide();
+                    }
+                    
+                } catch (error) {
+                    console.error('タスク削除エラー:', error);
+                    window.ApiClient.displayError(error);
+                }
+            }
+            
+            // イベントリスナーの設定
+            function setupTaskEventListeners() {
+                // タスク詳細表示
+                document.querySelectorAll('.view-task-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const taskId = e.target.dataset.taskId;
+                        showTaskDetail(taskId);
+                    });
+                });
+                
+                // タスク削除確認
+                document.querySelectorAll('.delete-task-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const taskId = e.target.dataset.taskId;
+                        confirmDeleteTask(taskId);
+                    });
+                });
+            }
+            
+            // 初期表示
+            displayTasks();
+            
+            // フィルター変更時の処理
+            document.getElementById('task-filter').addEventListener('change', displayTasks);
+            
+            // 検索ボタンクリック時の処理
+            document.getElementById('search-button').addEventListener('click', displayTasks);
+            
+            // 検索フィールドでエンターキー押下時の処理
+            document.getElementById('task-search').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    displayTasks();
+                }
+            });
+            
+            // 削除確認ボタンクリック時の処理
+            document.getElementById('confirm-delete-btn').addEventListener('click', (e) => {
+                const taskId = e.target.dataset.taskId;
+                deleteTask(taskId);
+            });
+            
+            // 編集ボタンクリック時の処理
+            document.getElementById('edit-task-btn').addEventListener('click', (e) => {
+                const taskId = e.target.dataset.taskId;
+                window.location.href = `task-create.html?edit=${taskId}`;
+            });
+        });
+    </script>
+</body>
+</html> 

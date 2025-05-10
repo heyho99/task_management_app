@@ -1,0 +1,154 @@
+from typing import List, Optional
+from datetime import date
+from pydantic import BaseModel, Field, validator
+
+
+# サブタスクスキーマ
+class SubtaskBase(BaseModel):
+    subtask_name: str = Field(..., description="サブタスク名")
+    contribution_value: int = Field(..., description="作業貢献値（0-100）", ge=0, le=100)
+
+
+class SubtaskCreate(SubtaskBase):
+    pass
+
+
+class SubtaskUpdate(SubtaskBase):
+    subtask_name: Optional[str] = None
+    contribution_value: Optional[int] = None
+
+
+class Subtask(SubtaskBase):
+    subtask_id: int
+    task_id: int
+    completion_rate: int = 0
+
+    class Config:
+        orm_mode = True
+
+
+# 日次タスク計画スキーマ
+class DailyTaskPlanBase(BaseModel):
+    date: date
+    task_plan_value: float = Field(..., description="作業計画値（0-100）", ge=0, le=100)
+
+
+class DailyTaskPlanCreate(DailyTaskPlanBase):
+    pass
+
+
+class DailyTaskPlanUpdate(DailyTaskPlanBase):
+    task_plan_value: Optional[float] = None
+
+
+class DailyTaskPlan(DailyTaskPlanBase):
+    daily_task_plan_id: int
+    task_id: int
+
+    class Config:
+        orm_mode = True
+
+
+# 日次時間計画スキーマ
+class DailyTimePlanBase(BaseModel):
+    date: date
+    time_plan_value: float = Field(..., description="作業時間計画値（分単位）", ge=0)
+
+
+class DailyTimePlanCreate(DailyTimePlanBase):
+    pass
+
+
+class DailyTimePlanUpdate(DailyTimePlanBase):
+    time_plan_value: Optional[float] = None
+
+
+class DailyTimePlan(DailyTimePlanBase):
+    daily_time_plan_id: int
+    task_id: int
+
+    class Config:
+        orm_mode = True
+
+
+# タスクスキーマ
+class TaskBase(BaseModel):
+    task_name: str = Field(..., description="タスク名")
+    task_content: str = Field(..., description="タスク内容")
+    recent_schedule: str = Field(..., description="直近の予定")
+    start_date: date = Field(..., description="開始予定日")
+    due_date: date = Field(..., description="完了予定日")
+    category: str = Field(..., description="カテゴリー")
+    target_time: int = Field(..., description="目標作業時間（分単位）", ge=0)
+    comment: Optional[str] = Field(None, description="コメント")
+
+    @validator('due_date')
+    def due_date_must_be_after_start_date(cls, v, values):
+        if 'start_date' in values and v < values['start_date']:
+            raise ValueError('完了予定日は開始予定日より後でなければなりません')
+        return v
+
+
+class TaskCreate(TaskBase):
+    subtasks: List[SubtaskCreate] = Field(..., description="サブタスク一覧")
+    daily_task_plans: List[DailyTaskPlanCreate] = Field(..., description="日次作業計画値一覧")
+    daily_time_plans: List[DailyTimePlanCreate] = Field(..., description="日次作業時間計画値一覧")
+
+    @validator('subtasks')
+    def validate_subtasks_contribution(cls, v):
+        total_contribution = sum(subtask.contribution_value for subtask in v)
+        if total_contribution != 100:
+            raise ValueError('サブタスクの作業貢献値の合計は100でなければなりません')
+        return v
+
+    @validator('daily_task_plans')
+    def validate_daily_task_plans(cls, v):
+        total_plan = sum(plan.task_plan_value for plan in v)
+        if not (99.9 <= total_plan <= 100.1):  # 浮動小数点の誤差を考慮
+            raise ValueError('日次作業計画値の合計は100でなければなりません')
+        return v
+
+    @validator('daily_time_plans')
+    def validate_daily_time_plans(cls, v, values):
+        if 'target_time' in values:
+            total_time = sum(plan.time_plan_value for plan in v)
+            target_time = values['target_time']
+            if not (target_time * 0.99 <= total_time <= target_time * 1.01):  # 浮動小数点の誤差を考慮
+                raise ValueError('日次作業時間計画値の合計は目標作業時間と等しくなければなりません')
+        return v
+
+
+class TaskUpdate(TaskBase):
+    task_name: Optional[str] = None
+    task_content: Optional[str] = None
+    recent_schedule: Optional[str] = None
+    start_date: Optional[date] = None
+    due_date: Optional[date] = None
+    category: Optional[str] = None
+    target_time: Optional[int] = None
+    comment: Optional[str] = None
+
+
+class Task(TaskBase):
+    task_id: int
+    user_id: int
+    subtasks: List[Subtask] = []
+    daily_task_plans: List[DailyTaskPlan] = []
+    daily_time_plans: List[DailyTimePlan] = []
+
+    class Config:
+        orm_mode = True
+
+
+# タスク初期値計算用スキーマ
+class TaskInitialValues(BaseModel):
+    start_date: date
+    due_date: date
+    target_time: int
+    subtask_count: int = Field(..., ge=1)
+
+    @validator('due_date')
+    def due_date_must_be_after_start_date(cls, v, values):
+        if 'start_date' in values and v < values['start_date']:
+            raise ValueError('完了予定日は開始予定日より後でなければなりません')
+        return v 

@@ -10,6 +10,9 @@ body {
     line-height: 1.6;
     color: #333;
     background-color: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 /* 共通クラス */
@@ -406,4 +409,111 @@ body {
     display: flex;
     justify-content: space-between;
     margin-top: 20px;
+}
+
+/* 基本スタイル */
+main {
+    flex: 1 0 auto;
+}
+
+footer {
+    flex-shrink: 0;
+}
+
+/* フォーム関連のスタイル */
+.form-label {
+    font-weight: 500;
+}
+
+.required::after {
+    content: " *";
+    color: red;
+}
+
+/* エラーメッセージ表示 */
+#error-message,
+#subtask-error,
+#task-plan-error,
+#time-plan-error {
+    display: none;
+}
+
+/* サブタスク項目のスタイル */
+.subtask-item {
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+    margin-bottom: 10px;
+}
+
+/* 日次計画項目のスタイル */
+.daily-task-plan,
+.daily-time-plan {
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+}
+
+/* カードヘッダーのスタイル */
+.card-header {
+    font-weight: 500;
+    background-color: #f1f3f5;
+}
+
+/* ナビゲーションスタイル */
+.navbar-dark .navbar-nav .nav-link.active {
+    font-weight: 600;
+    color: #fff;
+}
+
+/* グラフ表示エリア */
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+/* データ表示テーブル */
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    background-color: #f8f9fa;
+}
+
+/* ローディングインジケーター */
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100px;
+}
+
+/* ボタングループ */
+.btn-group-action {
+    display: flex;
+    gap: 5px;
+}
+
+/* タスク詳細ページ */
+.task-detail-header {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.task-progress-container {
+    margin: 20px 0;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .btn-group-action {
+        flex-direction: column;
+    }
 } 
