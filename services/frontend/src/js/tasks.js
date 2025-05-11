@@ -655,13 +655,16 @@ async function handleTaskSubmit(event) {
     };
     
     try {
+        console.log('送信するタスクデータ:', formData);
         const createdTask = await ApiClient.task.createTask(formData);
+        console.log('作成されたタスク:', createdTask);
         
         alert('タスクが正常に作成されました');
         
         // タスク一覧ページにリダイレクト
         window.location.href = '/tasks.html';
     } catch (error) {
+        console.error('タスク作成エラー詳細:', error);
         ApiClient.displayError(error);
     }
 }

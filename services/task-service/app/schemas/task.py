@@ -87,7 +87,9 @@ class TaskBase(BaseSchemaModel):
 
 
 class TaskCreate(TaskBase):
-    pass
+    subtasks: List[SubtaskCreate] = []
+    daily_task_plans: List[DailyTaskPlanCreate] = []
+    daily_time_plans: List[DailyTimePlanCreate] = []
 
 
 class TaskUpdate(TaskBase):
