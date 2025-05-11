@@ -2,9 +2,11 @@ task_management_app/
 ├── .github/
 │   └── workflows/          # GitHub Actions CI/CD workflows
 │       └── deploy.yml      # 例: デプロイ用ワークフロー
+├── .cursor/                # Cursorエディタの設定
 ├── database/               # DBスキーマ定義、マイグレーション関連
 │   ├── migrations/         # マイグレーションスクリプト (Alembicなどを使用する場合)
 │   ├── init.sql            # 初期テーブル作成用SQL (開発用など)
+│   ├── postgres_setup_memo.md # PostgreSQLセットアップメモ
 │   └── README.md           # DBスキーマに関する説明
 ├── docs/                   # プロジェクトドキュメント
 │   ├── api/                # API仕様書 (OpenAPI/Swagger など)
@@ -128,4 +130,7 @@ task_management_app/
 ├── .dockerignore           # Dockerビルド時に除外するファイル
 ├── .gitignore              # Gitで追跡しないファイル
 ├── docker-compose.yml      # 単一DB作成
+├── requirements.txt        # プロジェクト全体の依存ライブラリ
+├── test.md                 # テスト関連メモ
+├── venv/                   # Python仮想環境
 └── README.md               # プロジェクト概要、セットアップ方法、使い方など

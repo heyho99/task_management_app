@@ -1,0 +1,10 @@
+pip uninstall -y -r requirements.txt
+pip uninstall -y -r services/auth-service/requirements.txt
+pip uninstall -y -r services/task-service/requirements.txt
+
+sudo apt-get update
+sudo apt-get install -y libpq-dev python3-dev
+
+pip install -r requirements.txt
+pip install -r services/auth-service/requirements.txt
+pip install -r services/task-service/requirements.txt

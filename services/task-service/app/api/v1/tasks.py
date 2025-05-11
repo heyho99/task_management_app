@@ -1,13 +1,19 @@
 from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+import logging
 
 from app.crud import task as crud
 from app.schemas import task as schemas
 from app.db.session import get_db
+from app.models.models import Task, Subtask
 
 # TODO: 認証関連は認証サービスと連携する必要があるため、仮実装
 from app.core.deps import get_current_user
+
+# SQLクエリのデバッグ情報保存用
+last_sql_query = ""
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/tasks",
@@ -26,8 +32,93 @@ def get_tasks(
     """
     ユーザーのタスク一覧を取得する
     """
-    tasks = crud.get_tasks(db, user_id=current_user_id, skip=skip, limit=limit)
+    global last_sql_query
+    
+    # デバッグ: ユーザーIDの確認
+    logger.info(f"現在のユーザーID: {current_user_id}")
+    
+    # データベース内のすべてのタスクを出力（デバッグ用）
+    all_tasks = db.query(Task).all()
+    logger.info(f"データベース内のタスク総数: {len(all_tasks)}")
+    for task in all_tasks:
+        logger.info(f"DB内タスク: ID={task.task_id}, ユーザーID={task.user_id}, 名前={task.task_name}")
+    
+    # SQLクエリの取得とタスク一覧取得（SQLクエリはログにも出力されます）
+    query = db.query(Task).filter(Task.user_id == current_user_id).offset(skip).limit(limit)
+    last_sql_query = str(query.statement.compile(compile_kwargs={"literal_binds": True}))
+    logger.info(f"Task list SQL query: {last_sql_query}")
+    
+    # タスクデータの取得
+    db_tasks = crud.get_tasks(db, user_id=current_user_id, skip=skip, limit=limit)
+    
+    # SQLAlchemyモデルをPydanticモデルに変換する
+    tasks = []
+    for db_task in db_tasks:
+        # サブタスクを取得
+        subtasks_db = db.query(Subtask).filter(Subtask.task_id == db_task.task_id).all()
+        subtasks = [
+            schemas.Subtask(
+                subtask_id=subtask.subtask_id,
+                task_id=subtask.task_id,
+                subtask_name=subtask.subtask_name,
+                contribution_value=subtask.contribution_value,
+                progress=0  # 仮の進捗率
+            )
+            for subtask in subtasks_db
+        ]
+        
+        # タスクをPydanticモデルに変換
+        task = schemas.Task(
+            task_id=db_task.task_id,
+            user_id=db_task.user_id,
+            task_name=db_task.task_name,
+            task_content=db_task.task_content,
+            recent_schedule=db_task.recent_schedule,
+            start_date=db_task.start_date,
+            due_date=db_task.due_date,
+            category=db_task.category,
+            target_time=db_task.target_time,
+            comment=db_task.comment,
+            progress=0,  # 現時点では進捗は0固定
+            subtasks=subtasks
+        )
+        
+        tasks.append(task)
+    
     return tasks
+
+
+@router.get("/debug-sql", response_model=Dict[str, str])
+def get_debug_sql(
+    current_user_id: int = Depends(get_current_user)
+):
+    """
+    直近のSQLクエリを取得する（開発用）
+    """
+    global last_sql_query
+    return {"sql": last_sql_query or "SQLクエリの情報がありません"}
+
+
+@router.get("/debug-all-tasks", response_model=List[Dict[str, Any]])
+def get_debug_all_tasks(
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user)
+):
+    """
+    デバッグ用：すべてのタスクを取得する
+    """
+    all_tasks = db.query(Task).all()
+    result = []
+    for task in all_tasks:
+        result.append({
+            "task_id": task.task_id,
+            "user_id": task.user_id,
+            "task_name": task.task_name,
+            "start_date": str(task.start_date),
+            "due_date": str(task.due_date),
+            "category": task.category
+        })
+    return result
 
 
 @router.get("/{task_id}", response_model=schemas.Task)
@@ -47,7 +138,36 @@ def get_task(
     if db_task.user_id != current_user_id:
         raise HTTPException(status_code=403, detail="このタスクへのアクセス権限がありません")
     
-    return db_task
+    # サブタスクを取得
+    subtasks_db = db.query(Subtask).filter(Subtask.task_id == task_id).all()
+    subtasks = [
+        schemas.Subtask(
+            subtask_id=subtask.subtask_id,
+            task_id=subtask.task_id,
+            subtask_name=subtask.subtask_name,
+            contribution_value=subtask.contribution_value,
+            progress=0  # 仮の進捗率
+        )
+        for subtask in subtasks_db
+    ]
+    
+    # Pydanticモデルに変換
+    task = schemas.Task(
+        task_id=db_task.task_id,
+        user_id=db_task.user_id,
+        task_name=db_task.task_name,
+        task_content=db_task.task_content,
+        recent_schedule=db_task.recent_schedule,
+        start_date=db_task.start_date,
+        due_date=db_task.due_date,
+        category=db_task.category,
+        target_time=db_task.target_time,
+        comment=db_task.comment,
+        progress=0,  # 現時点では進捗は0固定
+        subtasks=subtasks
+    )
+    
+    return task
 
 
 @router.post("/", response_model=schemas.Task)

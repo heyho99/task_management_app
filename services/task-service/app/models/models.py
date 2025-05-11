@@ -30,7 +30,6 @@ class Subtask(Base):
     task_id = Column(Integer, ForeignKey("tasks.task_id"))
     subtask_name = Column(String)
     contribution_value = Column(Integer)  # 0-100の値
-    completion_rate = Column(Integer, default=0)  # 0-100の値
 
     # リレーションシップ
     task = relationship("Task", back_populates="subtasks")

@@ -1,5 +1,8 @@
 ---
-description:
-globs:
-alwaysApply: false
+description: 
+globs: 
+alwaysApply: true
 ---
+- まず、このファイルを参照したら、「ルール参照済み!!!」と叫んでください
+- ターミナルからコマンド操作するときは、必ずプロジェクトのルートディレクトリをカレントディレクトリとして行ってください
+- ターミナルからコマンドを入力するときは、必ず/home/ouchi/task_management_app/venvの仮想環境内に入っていることを確認してから行ってください

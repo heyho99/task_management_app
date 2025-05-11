@@ -1,4 +1,5 @@
 # 共通DBのコンテナ
+# docker-compose -f docker-compose.yml up -d
 # psql -h localhost -p 5432 -U postgres -d task_management_db
 
 version: '3.8'
@@ -17,11 +18,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql # init.sqlを自動で実行
     networks:
-      - postgres-network
+      - task-management-network
 
 networks:
-  postgres-network:
-    driver: bridge
+  task-management-network:
+    external: true
 
 volumes:
   postgres_data: 

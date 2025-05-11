@@ -6,6 +6,81 @@
     <title>タスク一覧 - タスク管理アプリ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* デバッグパネルのスタイル */
+        #debug-panel {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: 50%;
+            max-height: 50%;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: #00ff00;
+            font-family: monospace;
+            z-index: 9999;
+            overflow: auto;
+            padding: 10px;
+            border-top-left-radius: 5px;
+            font-size: 12px;
+            display: none;
+            border: 1px solid #444;
+        }
+        #debug-panel.show {
+            display: block;
+        }
+        #debug-panel h4 {
+            color: #fff;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 3px;
+        }
+        #debug-panel pre {
+            color: #00ff00;
+            margin: 0;
+        }
+        #debug-toggle {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            z-index: 10000;
+            background-color: #444;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .debug-section {
+            margin-bottom: 10px;
+        }
+    </style>
+    <script>
+        // 認証チェック
+        function checkAuth() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                alert('ログインが必要です');
+                window.location.href = '/login.html';
+                return false;
+            }
+            console.log('認証トークン確認:', token);
+            return true;
+        }
+
+        // ページロード時に認証を確認
+        window.addEventListener('DOMContentLoaded', function() {
+            if (!checkAuth()) return;
+            
+            // 開発用：認証トークンが存在しない場合は仮トークンを設定
+            const token = localStorage.getItem('auth_token');
+            if (!token || token.trim() === '') {
+                const devToken = "dummy_development_token_1234567890";
+                localStorage.setItem('auth_token', devToken);
+                console.log('開発用トークンを自動設定:', devToken);
+            }
+        });
+    </script>
 </head>
 <body>
     <header class="navbar navbar-dark bg-dark">
@@ -110,6 +185,31 @@
         </div>
     </div>
 
+    <!-- 開発用デバッグパネル -->
+    <button id="debug-toggle">デバッグ表示</button>
+    <div id="debug-panel">
+        <h4>認証情報</h4>
+        <div class="debug-section" id="auth-debug">
+            <pre>読み込み中...</pre>
+        </div>
+        <h4>APIリクエスト</h4>
+        <div class="debug-section" id="api-request-debug">
+            <pre>まだリクエストはありません</pre>
+        </div>
+        <h4>APIレスポンス</h4>
+        <div class="debug-section" id="api-response-debug">
+            <pre>まだレスポンスはありません</pre>
+        </div>
+        <h4>SQL</h4>
+        <div class="debug-section" id="sql-debug">
+            <pre>SQLログはありません</pre>
+        </div>
+        <h4>タスクデータ</h4>
+        <div class="debug-section" id="task-data-debug">
+            <pre>タスクデータはありません</pre>
+        </div>
+    </div>
+
     <footer class="bg-light py-3 mt-auto">
         <div class="container text-center">
             <p class="mb-0">&copy; 2023 タスク管理アプリ</p>
@@ -121,6 +221,57 @@
     <script src="js/tasks.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // デバッグパネルの表示/非表示切り替え
+            const debugToggleBtn = document.getElementById('debug-toggle');
+            const debugPanel = document.getElementById('debug-panel');
+            debugToggleBtn.addEventListener('click', () => {
+                debugPanel.classList.toggle('show');
+            });
+            
+            // 認証情報のデバッグ表示
+            const authDebug = document.getElementById('auth-debug');
+            const token = localStorage.getItem('auth_token');
+            authDebug.innerHTML = `<pre>Auth Token: ${token || 'なし'}</pre>`;
+            
+            // APIリクエスト・レスポンスのデバッグ用に元のfetchをオーバーライド
+            const originalFetch = window.fetch;
+            window.fetch = async function(url, options) {
+                document.getElementById('api-request-debug').innerHTML = 
+                    `<pre>URL: ${url}\nOptions: ${JSON.stringify(options, null, 2)}</pre>`;
+                
+                try {
+                    const response = await originalFetch(url, options);
+                    
+                    // レスポンスのクローンを作成（元のレスポンスを消費せずに内容を取得するため）
+                    const clonedResponse = response.clone();
+                    
+                    // レスポンスがJSONの場合
+                    let responseData;
+                    try {
+                        responseData = await clonedResponse.json();
+                        document.getElementById('api-response-debug').innerHTML = 
+                            `<pre>Status: ${response.status}\nData: ${JSON.stringify(responseData, null, 2)}</pre>`;
+                            
+                        // タスクデータの場合はSQLと結果を表示
+                        if (url.includes('/tasks/') && Array.isArray(responseData)) {
+                            document.getElementById('task-data-debug').innerHTML = 
+                                `<pre>タスク数: ${responseData.length}\nデータ: ${JSON.stringify(responseData, null, 2)}</pre>`;
+                        }
+                    } catch (e) {
+                        // JSONではない場合はテキストとして表示
+                        const textData = await clonedResponse.text();
+                        document.getElementById('api-response-debug').innerHTML = 
+                            `<pre>Status: ${response.status}\nText: ${textData}</pre>`;
+                    }
+                    
+                    return response;
+                } catch (error) {
+                    document.getElementById('api-response-debug').innerHTML = 
+                        `<pre>Error: ${error.message}</pre>`;
+                    throw error;
+                }
+            };
+            
             // タスク一覧を表示
             const taskListContainer = document.getElementById('task-list-container');
             
@@ -129,7 +280,29 @@
                 try {
                     taskListContainer.innerHTML = '<div class="loading">読み込み中...</div>';
                     
+                    // 開発用: SQLクエリを取得するためのリクエスト
+                    try {
+                        const sqlResponse = await fetch('/api/v1/tasks/debug-sql', {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                            }
+                        });
+                        
+                        if (sqlResponse.ok) {
+                            const sqlData = await sqlResponse.json();
+                            document.getElementById('sql-debug').innerHTML = 
+                                `<pre>${sqlData.sql || 'SQLクエリを取得できません'}</pre>`;
+                        }
+                    } catch (e) {
+                        console.log('SQLデバッグ情報取得エラー:', e);
+                        // エラーは無視して処理続行
+                    }
+                    
                     const tasks = await window.ApiClient.task.getTasks();
+                    
+                    // タスクデータのデバッグ表示
+                    document.getElementById('task-data-debug').innerHTML = 
+                        `<pre>タスク数: ${tasks ? tasks.length : 0}\nデータ: ${JSON.stringify(tasks, null, 2)}</pre>`;
                     
                     if (!tasks || tasks.length === 0) {
                         taskListContainer.innerHTML = `
@@ -151,8 +324,8 @@
                     // 検索フィルター
                     if (searchValue) {
                         filteredTasks = filteredTasks.filter(task => 
-                            task.title.toLowerCase().includes(searchValue) || 
-                            (task.description && task.description.toLowerCase().includes(searchValue))
+                            task.task_name.toLowerCase().includes(searchValue) || 
+                            (task.task_content && task.task_content.toLowerCase().includes(searchValue))
                         );
                     }
                     
@@ -194,12 +367,12 @@
                             <div class="task-item card mb-3 ${statusClass}">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <h5 class="card-title">${task.title}</h5>
+                                        <h5 class="card-title">${task.task_name}</h5>
                                         <div class="task-actions">
-                                            <button class="btn btn-sm btn-outline-primary view-task-btn" data-task-id="${task.id}">
+                                            <button class="btn btn-sm btn-outline-primary view-task-btn" data-task-id="${task.task_id}">
                                                 詳細
                                             </button>
-                                            <button class="btn btn-sm btn-outline-danger delete-task-btn" data-task-id="${task.id}">
+                                            <button class="btn btn-sm btn-outline-danger delete-task-btn" data-task-id="${task.task_id}">
                                                 削除
                                             </button>
                                         </div>
@@ -227,6 +400,8 @@
                 } catch (error) {
                     taskListContainer.innerHTML = '<div class="alert alert-danger">タスクの読み込みに失敗しました</div>';
                     console.error('タスク読み込みエラー:', error);
+                    document.getElementById('api-response-debug').innerHTML = 
+                        `<pre>Error: ${error.message}\nStack: ${error.stack}</pre>`;
                     window.ApiClient.displayError(error);
                 }
             }
@@ -244,8 +419,8 @@
                     const dueDate = new Date(task.due_date).toLocaleDateString('ja-JP');
                     
                     taskDetailContainer.innerHTML = `
-                        <div class="task-detail" data-task-id="${task.id}">
-                            <h4>${task.title}</h4>
+                        <div class="task-detail" data-task-id="${task.task_id}">
+                            <h4>${task.task_name}</h4>
                             <div class="progress mb-3 mt-3">
                                 <div class="progress-bar" role="progressbar" style="width: ${task.progress}%" 
                                     aria-valuenow="${task.progress}" aria-valuemin="0" aria-valuemax="100">
@@ -262,7 +437,7 @@
                             </div>
                             <div class="mb-3">
                                 <h5>説明</h5>
-                                <p>${task.description || '説明はありません'}</p>
+                                <p>${task.task_content || '説明はありません'}</p>
                             </div>
                             <div class="mb-3">
                                 <h5>サブタスク</h5>
@@ -274,13 +449,13 @@
                     `;
                     
                     // 編集ボタンにタスクIDを設定
-                    document.getElementById('edit-task-btn').dataset.taskId = task.id;
+                    document.getElementById('edit-task-btn').dataset.taskId = task.task_id;
                     
                     taskModal.show();
                     
                     // サブタスクの読み込み
                     try {
-                        const subtasks = await window.ApiClient.task.getSubtasks(task.id);
+                        const subtasks = await window.ApiClient.task.getSubtasks(task.task_id);
                         const subtaskList = document.getElementById('subtask-list');
                         
                         if (!subtasks || subtasks.length === 0) {
@@ -293,7 +468,7 @@
                                 <div class="card mb-2">
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <h6 class="mb-0">${subtask.title}</h6>
+                                            <h6 class="mb-0">${subtask.subtask_name}</h6>
                                             <span class="badge bg-primary">${subtask.contribution_value}%</span>
                                         </div>
                                         <div class="progress mt-2">
@@ -316,7 +491,7 @@
                     }
                     
                 } catch (error) {
-                    console.error('タスク詳細表示エラー:', error);
+                    console.error('タスク詳細読み込みエラー:', error);
                     window.ApiClient.displayError(error);
                 }
             }

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.crud import subtask as crud
 from app.schemas import task as schemas
 from app.db.session import get_db
+from app.models.models import Subtask
 
 # TODO: 認証関連は認証サービスと連携する必要があるため、仮実装
 from app.core.deps import get_current_user
@@ -34,7 +35,21 @@ def get_subtasks_by_task(
     if task.user_id != current_user_id:
         raise HTTPException(status_code=403, detail="このタスクへのアクセス権限がありません")
     
-    subtasks = crud.get_subtasks(db, task_id=task_id)
+    # サブタスク情報を取得
+    db_subtasks = db.query(Subtask).filter(Subtask.task_id == task_id).all()
+    
+    # Pydanticモデルに変換
+    subtasks = [
+        schemas.Subtask(
+            subtask_id=subtask.subtask_id,
+            task_id=subtask.task_id,
+            subtask_name=subtask.subtask_name,
+            contribution_value=subtask.contribution_value,
+            progress=0  # 仮の進捗率
+        )
+        for subtask in db_subtasks
+    ]
+    
     return subtasks
 
 
@@ -57,7 +72,16 @@ def get_subtask(
     if task.user_id != current_user_id:
         raise HTTPException(status_code=403, detail="このサブタスクへのアクセス権限がありません")
     
-    return subtask
+    # Pydanticモデルに変換
+    subtask_model = schemas.Subtask(
+        subtask_id=subtask.subtask_id,
+        task_id=subtask.task_id,
+        subtask_name=subtask.subtask_name,
+        contribution_value=subtask.contribution_value,
+        progress=0  # 仮の進捗率
+    )
+    
+    return subtask_model
 
 
 @router.post("/task/{task_id}", response_model=schemas.Subtask)

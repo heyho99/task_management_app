@@ -46,7 +46,6 @@
         - task_id =tasksテーブル新規レコードの値と同じ
         - subtask_name =サブタスク名
         - contribution_value =作業実績値
-        - completion_rate =0
     - daily_task_plansテーブル新規レコード（開始予定日から完了予定日までの日分作成される）
         - daily_task_plan_id =自動採番
         - task_id =tasksテーブル新規レコードの値と同じ

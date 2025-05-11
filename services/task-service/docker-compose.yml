@@ -5,12 +5,20 @@ version: '3.8'
 services:
   task-service:
     build: .
+    container_name: task-service
     ports:
       - "8002:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@host:5432/taskmanagement
+      - DATABASE_URL=postgresql://postgres:postgres@task-management-postgres:5432/task_management_db
     volumes:
-      - ./app:/app
+      - ./app:/app/app
     restart: unless-stopped
     extra_hosts:
       - "host:host-gateway"
+    networks:
+      - task-management-network
+      - default
+
+networks:
+  task-management-network:
+    external: true

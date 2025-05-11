@@ -2,9 +2,14 @@ from typing import List, Optional, Dict, Any
 from datetime import date, datetime, timedelta
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
+import logging
+import json
 
 from app.models.models import Task, Subtask, DailyTaskPlan, DailyTimePlan
 from app.schemas import task as schemas
+
+# ロガーの設定
+logger = logging.getLogger(__name__)
 
 
 def get_task(db: Session, task_id: int) -> Optional[Task]:
@@ -14,7 +19,34 @@ def get_task(db: Session, task_id: int) -> Optional[Task]:
 
 def get_tasks(db: Session, user_id: int, skip: int = 0, limit: int = 100) -> List[Task]:
     """ユーザーのタスク一覧を取得する"""
-    return db.query(Task).filter(Task.user_id == user_id).offset(skip).limit(limit).all()
+    # SQLクエリをログに出力（開発用）
+    query = db.query(Task).filter(Task.user_id == user_id).offset(skip).limit(limit)
+    sql_statement = str(query.statement.compile(compile_kwargs={"literal_binds": True}))
+    logger.info(f"SQL query: {sql_statement}")
+    
+    # クエリ実行
+    tasks = query.all()
+    
+    # 結果をログに出力
+    logger.info(f"User {user_id} tasks retrieved: {len(tasks)} tasks")
+    
+    # 開発用：タスクがない場合は空のリストを返す
+    if not tasks:
+        logger.warning(f"No tasks found for user {user_id}")
+        return []
+    
+    # 開発用：タスクの内容をログに出力
+    for i, task in enumerate(tasks):
+        task_dict = {
+            "task_id": task.task_id,
+            "user_id": task.user_id,
+            "task_name": task.task_name,
+            "start_date": task.start_date.isoformat() if task.start_date else None,
+            "due_date": task.due_date.isoformat() if task.due_date else None,
+        }
+        logger.info(f"Task {i+1}: {json.dumps(task_dict)}")
+    
+    return tasks
 
 
 def create_task(db: Session, task: schemas.TaskCreate, user_id: int) -> Task:
@@ -44,8 +76,7 @@ def create_task(db: Session, task: schemas.TaskCreate, user_id: int) -> Task:
             db_subtask = Subtask(
                 task_id=db_task.task_id,
                 subtask_name=subtask_data.subtask_name,
-                contribution_value=subtask_data.contribution_value,
-                completion_rate=0  # 初期値は0
+                contribution_value=subtask_data.contribution_value
             )
             db.add(db_subtask)
 

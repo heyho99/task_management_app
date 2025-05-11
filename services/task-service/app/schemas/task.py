@@ -1,10 +1,16 @@
 from typing import List, Optional
 from datetime import date
 from pydantic import BaseModel, Field, validator
+from typing import Dict, Any
+
+
+class BaseSchemaModel(BaseModel):
+    class Config:
+        orm_mode = True
 
 
 # サブタスクスキーマ
-class SubtaskBase(BaseModel):
+class SubtaskBase(BaseSchemaModel):
     subtask_name: str = Field(..., description="サブタスク名")
     contribution_value: int = Field(..., description="作業貢献値（0-100）", ge=0, le=100)
 
@@ -21,14 +27,11 @@ class SubtaskUpdate(SubtaskBase):
 class Subtask(SubtaskBase):
     subtask_id: int
     task_id: int
-    completion_rate: int = 0
-
-    class Config:
-        orm_mode = True
+    progress: int = 0  # 進捗率（フロントエンド表示用）
 
 
 # 日次タスク計画スキーマ
-class DailyTaskPlanBase(BaseModel):
+class DailyTaskPlanBase(BaseSchemaModel):
     date: date
     task_plan_value: float = Field(..., description="作業計画値（0-100）", ge=0, le=100)
 
@@ -45,12 +48,9 @@ class DailyTaskPlan(DailyTaskPlanBase):
     daily_task_plan_id: int
     task_id: int
 
-    class Config:
-        orm_mode = True
-
 
 # 日次時間計画スキーマ
-class DailyTimePlanBase(BaseModel):
+class DailyTimePlanBase(BaseSchemaModel):
     date: date
     time_plan_value: float = Field(..., description="作業時間計画値（分単位）", ge=0)
 
@@ -67,19 +67,16 @@ class DailyTimePlan(DailyTimePlanBase):
     daily_time_plan_id: int
     task_id: int
 
-    class Config:
-        orm_mode = True
-
 
 # タスクスキーマ
-class TaskBase(BaseModel):
+class TaskBase(BaseSchemaModel):
     task_name: str = Field(..., description="タスク名")
-    task_content: str = Field(..., description="タスク内容")
-    recent_schedule: str = Field(..., description="直近の予定")
+    task_content: Optional[str] = Field(None, description="タスク内容")
+    recent_schedule: Optional[str] = Field(None, description="直近の予定")
     start_date: date = Field(..., description="開始予定日")
     due_date: date = Field(..., description="完了予定日")
-    category: str = Field(..., description="カテゴリー")
-    target_time: int = Field(..., description="目標作業時間（分単位）", ge=0)
+    category: Optional[str] = Field(None, description="カテゴリー")
+    target_time: Optional[int] = Field(None, description="目標作業時間（分単位）", ge=0)
     comment: Optional[str] = Field(None, description="コメント")
 
     @validator('due_date')
@@ -90,32 +87,7 @@ class TaskBase(BaseModel):
 
 
 class TaskCreate(TaskBase):
-    subtasks: List[SubtaskCreate] = Field(..., description="サブタスク一覧")
-    daily_task_plans: List[DailyTaskPlanCreate] = Field(..., description="日次作業計画値一覧")
-    daily_time_plans: List[DailyTimePlanCreate] = Field(..., description="日次作業時間計画値一覧")
-
-    @validator('subtasks')
-    def validate_subtasks_contribution(cls, v):
-        total_contribution = sum(subtask.contribution_value for subtask in v)
-        if total_contribution != 100:
-            raise ValueError('サブタスクの作業貢献値の合計は100でなければなりません')
-        return v
-
-    @validator('daily_task_plans')
-    def validate_daily_task_plans(cls, v):
-        total_plan = sum(plan.task_plan_value for plan in v)
-        if not (99.9 <= total_plan <= 100.1):  # 浮動小数点の誤差を考慮
-            raise ValueError('日次作業計画値の合計は100でなければなりません')
-        return v
-
-    @validator('daily_time_plans')
-    def validate_daily_time_plans(cls, v, values):
-        if 'target_time' in values:
-            total_time = sum(plan.time_plan_value for plan in v)
-            target_time = values['target_time']
-            if not (target_time * 0.99 <= total_time <= target_time * 1.01):  # 浮動小数点の誤差を考慮
-                raise ValueError('日次作業時間計画値の合計は目標作業時間と等しくなければなりません')
-        return v
+    pass
 
 
 class TaskUpdate(TaskBase):
@@ -133,11 +105,7 @@ class Task(TaskBase):
     task_id: int
     user_id: int
     subtasks: List[Subtask] = []
-    daily_task_plans: List[DailyTaskPlan] = []
-    daily_time_plans: List[DailyTimePlan] = []
-
-    class Config:
-        orm_mode = True
+    progress: int = 0  # 進捗率（フロントエンド表示用）
 
 
 # タスク初期値計算用スキーマ
