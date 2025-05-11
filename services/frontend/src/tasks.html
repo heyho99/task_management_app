@@ -566,7 +566,7 @@
             // 編集ボタンクリック時の処理
             document.getElementById('edit-task-btn').addEventListener('click', (e) => {
                 const taskId = e.target.dataset.taskId;
-                window.location.href = `task-create.html?edit=${taskId}`;
+                window.location.href = `task-edit.html?id=${taskId}`;
             });
         });
     </script>

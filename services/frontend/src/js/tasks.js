@@ -138,7 +138,7 @@ const Tasks = {
         container.querySelectorAll('.edit-task-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const taskId = e.target.dataset.id;
-                this.showTaskEditForm(taskId);
+                window.location.href = `task-edit.html?id=${taskId}`;
             });
         });
         
@@ -186,89 +186,6 @@ const Tasks = {
         } catch (error) {
             console.error('タスク詳細表示エラー:', error);
         }
-    },
-    
-    /**
-     * タスク編集フォームを表示
-     * @param {number} taskId - タスクID（新規作成の場合はnull）
-     */
-    async showTaskEditForm(taskId = null) {
-        const modalContent = document.getElementById('modal-content');
-        let task = null;
-        
-        if (taskId) {
-            try {
-                task = await this.getTask(taskId);
-            } catch (error) {
-                console.error('タスク取得エラー:', error);
-                return;
-            }
-        }
-        
-        const startDate = task ? new Date(task.start_date).toISOString().split('T')[0] : '';
-        const dueDate = task ? new Date(task.due_date).toISOString().split('T')[0] : '';
-        
-        modalContent.innerHTML = `
-            <h2>${task ? 'タスク編集' : 'タスク作成'}</h2>
-            <form id="task-form">
-                <div class="form-group">
-                    <label for="title">タイトル</label>
-                    <input type="text" id="title" name="title" value="${task?.title || ''}" required>
-                </div>
-                <div class="form-group">
-                    <label for="description">説明</label>
-                    <textarea id="description" name="description" rows="4">${task?.description || ''}</textarea>
-                </div>
-                <div class="form-group">
-                    <label for="start_date">開始日</label>
-                    <input type="date" id="start_date" name="start_date" value="${startDate}" required>
-                </div>
-                <div class="form-group">
-                    <label for="due_date">期限日</label>
-                    <input type="date" id="due_date" name="due_date" value="${dueDate}" required>
-                </div>
-                <div class="form-group">
-                    <label for="progress">進捗率 (%)</label>
-                    <input type="number" id="progress" name="progress" min="0" max="100" value="${task?.progress || 0}" required>
-                </div>
-                <button type="submit" class="btn">${task ? '更新' : '作成'}</button>
-            </form>
-        `;
-        
-        // モーダルを表示
-        document.getElementById('modal').classList.remove('hidden');
-        
-        // フォーム送信イベントを設定
-        document.getElementById('task-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const taskData = {
-                title: formData.get('title'),
-                description: formData.get('description'),
-                start_date: formData.get('start_date'),
-                due_date: formData.get('due_date'),
-                progress: parseInt(formData.get('progress'))
-            };
-            
-            try {
-                if (task) {
-                    await this.updateTask(taskId, taskData);
-                } else {
-                    await this.createTask(taskData);
-                }
-                
-                // モーダルを閉じる
-                document.getElementById('modal').classList.add('hidden');
-                
-                // タスク一覧を更新
-                this.renderTaskList(document.getElementById('task-list'));
-                
-            } catch (error) {
-                console.error('タスク保存エラー:', error);
-                alert('タスクの保存に失敗しました。');
-            }
-        });
     },
     
     /**
@@ -347,35 +264,25 @@ function initTaskCreationPage() {
 
     console.log('addSubtaskBtn要素:', addSubtaskBtn);
 
-    // URLパラメータから編集モードかどうかを判定
-    const urlParams = new URLSearchParams(window.location.search);
-    const editTaskId = urlParams.get('edit');
-    
-    if (editTaskId) {
-        // 編集モードの場合、タスク情報を取得して表示
-        loadTaskForEdit(editTaskId);
-    } else {
-        // 新規作成モードの場合、初期値を設定
-        // サブタスク追加ボタンのイベントリスナー
-        if (addSubtaskBtn) {
-            console.log('サブタスク追加ボタンにイベントリスナーを追加します');
-            // インラインのonclick属性を使用する代わりに、ここでイベントリスナーを追加
-            addSubtaskBtn.onclick = function() {
-                console.log('サブタスク追加ボタンがクリックされました');
-                window.addSubtaskField(); // グローバル関数として呼び出し
-            };
-        }
-
-        // 日付またはターゲット時間が変更されたら初期値を再計算
-        if (startDateInput && dueDateInput && targetTimeInput) {
-            [startDateInput, dueDateInput, targetTimeInput].forEach(input => {
-                input.addEventListener('change', updateInitialValues);
-            });
-        }
-
-        // 初期サブタスク追加
-        addSubtaskField();
+    // サブタスク追加ボタンのイベントリスナー
+    if (addSubtaskBtn) {
+        console.log('サブタスク追加ボタンにイベントリスナーを追加します');
+        // インラインのonclick属性を使用する代わりに、ここでイベントリスナーを追加
+        addSubtaskBtn.onclick = function() {
+            console.log('サブタスク追加ボタンがクリックされました');
+            window.addSubtaskField(); // グローバル関数として呼び出し
+        };
     }
+
+    // 日付またはターゲット時間が変更されたら初期値を再計算
+    if (startDateInput && dueDateInput && targetTimeInput) {
+        [startDateInput, dueDateInput, targetTimeInput].forEach(input => {
+            input.addEventListener('change', updateInitialValues);
+        });
+    }
+
+    // 初期サブタスク追加
+    addSubtaskField();
 
     // フォーム送信イベントリスナー
     if (form) {
@@ -384,50 +291,51 @@ function initTaskCreationPage() {
 }
 
 /**
- * 編集用にタスク情報を読み込んで表示する
- * @param {string} taskId - 編集対象のタスクID
+ * タスク編集ページの初期化
  */
-async function loadTaskForEdit(taskId) {
-    try {
-        const task = await ApiClient.task.getTask(taskId);
-        console.log('編集するタスク:', task);
-        
-        // ページタイトルとボタンテキストを変更
-        document.querySelector('h1.mb-4').textContent = 'タスク編集';
-        document.querySelector('button[type="submit"]').textContent = 'タスク更新';
-        
-        // フォームに値を設定
-        document.getElementById('task-name').value = task.task_name;
-        document.getElementById('task-content').value = task.task_content || '';
-        document.getElementById('recent-schedule').value = task.recent_schedule || '';
-        document.getElementById('start-date').value = new Date(task.start_date).toISOString().split('T')[0];
-        document.getElementById('due-date').value = new Date(task.due_date).toISOString().split('T')[0];
-        document.getElementById('category').value = task.category;
-        document.getElementById('target-time').value = task.target_time;
-        document.getElementById('comment').value = task.comment || '';
-        
-        // サブタスクの読み込みと表示
-        const subtasks = await ApiClient.task.getSubtasks(taskId);
-        const subtasksContainer = document.getElementById('subtasks-container');
-        subtasksContainer.innerHTML = ''; // 既存のサブタスクをクリア
-        
-        if (subtasks && subtasks.length > 0) {
-            subtasks.forEach((subtask, index) => {
-                addSubtaskField(subtask);
-            });
-        } else {
-            // サブタスクがない場合は初期フィールドを追加
-            addSubtaskField();
-        }
-        
-        // 日次プランの取得と表示（あれば）
-        // 注: APIに日次プラン取得メソッドがある場合はそれを使用
-        // ここでは簡易的に空のプランを表示
-        updateInitialValues();
-        
-        // フォーム送信処理を編集モード用に変更
-        const form = document.getElementById('task-create-form');
-        form.onsubmit = async (event) => {
+function initTaskEditPage() {
+    console.log('initTaskEditPage関数が呼び出されました');
+    const form = document.getElementById('task-edit-form');
+    const addSubtaskBtn = document.getElementById('add-subtask');
+    const subtaskContainer = document.getElementById('subtasks-container');
+    const startDateInput = document.getElementById('start-date');
+    const dueDateInput = document.getElementById('due-date');
+    const targetTimeInput = document.getElementById('target-time');
+
+    console.log('addSubtaskBtn要素:', addSubtaskBtn);
+
+    // URLパラメータからタスクIDを取得
+    const urlParams = new URLSearchParams(window.location.search);
+    const taskId = urlParams.get('id');
+    
+    if (!taskId) {
+        alert('タスクIDが指定されていません。タスク一覧に戻ります。');
+        window.location.href = 'tasks.html';
+        return;
+    }
+
+    // タスク情報を読み込んで表示
+    loadTaskForEdit(taskId);
+
+    // サブタスク追加ボタンのイベントリスナー
+    if (addSubtaskBtn) {
+        console.log('サブタスク追加ボタンにイベントリスナーを追加します');
+        addSubtaskBtn.onclick = function() {
+            console.log('サブタスク追加ボタンがクリックされました');
+            window.addSubtaskField(); // グローバル関数として呼び出し
+        };
+    }
+
+    // 日付またはターゲット時間が変更されたら初期値を再計算
+    if (startDateInput && dueDateInput && targetTimeInput) {
+        [startDateInput, dueDateInput, targetTimeInput].forEach(input => {
+            input.addEventListener('change', updateInitialValues);
+        });
+    }
+
+    // フォーム送信イベントリスナー
+    if (form) {
+        form.addEventListener('submit', async (event) => {
             event.preventDefault();
             
             // バリデーション
@@ -467,16 +375,61 @@ async function loadTaskForEdit(taskId) {
                 alert('タスクが正常に更新されました');
                 
                 // タスク一覧ページにリダイレクト
-                window.location.href = '/tasks.html';
+                window.location.href = 'tasks.html';
             } catch (error) {
                 console.error('タスク更新エラー詳細:', error);
                 ApiClient.displayError(error);
             }
-        };
+        });
+    }
+}
+
+/**
+ * 編集用にタスク情報を読み込んで表示する
+ * @param {string} taskId - 編集対象のタスクID
+ */
+async function loadTaskForEdit(taskId) {
+    try {
+        const task = await ApiClient.task.getTask(taskId);
+        console.log('編集するタスク:', task);
+        
+        // hiddenフィールドにタスクIDをセット
+        if (document.getElementById('task-id')) {
+            document.getElementById('task-id').value = taskId;
+        }
+        
+        // フォームに値を設定
+        document.getElementById('task-name').value = task.task_name;
+        document.getElementById('task-content').value = task.task_content || '';
+        document.getElementById('recent-schedule').value = task.recent_schedule || '';
+        document.getElementById('start-date').value = new Date(task.start_date).toISOString().split('T')[0];
+        document.getElementById('due-date').value = new Date(task.due_date).toISOString().split('T')[0];
+        document.getElementById('category').value = task.category;
+        document.getElementById('target-time').value = task.target_time;
+        document.getElementById('comment').value = task.comment || '';
+        
+        // サブタスクの読み込みと表示
+        const subtasks = await ApiClient.task.getSubtasks(taskId);
+        const subtasksContainer = document.getElementById('subtasks-container');
+        subtasksContainer.innerHTML = ''; // 既存のサブタスクをクリア
+        
+        if (subtasks && subtasks.length > 0) {
+            subtasks.forEach((subtask, index) => {
+                addSubtaskField(subtask);
+            });
+        } else {
+            // サブタスクがない場合は初期フィールドを追加
+            addSubtaskField();
+        }
+        
+        // 日次プランの取得と表示（あれば）
+        // 注: APIに日次プラン取得メソッドがある場合はそれを使用
+        updateInitialValues();
+        
     } catch (error) {
         console.error('タスク読み込みエラー:', error);
         alert('タスクの読み込みに失敗しました。タスク一覧に戻ります。');
-        window.location.href = '/tasks.html';
+        window.location.href = 'tasks.html';
     }
 }
 
@@ -821,7 +774,7 @@ async function handleTaskSubmit(event) {
         alert('タスクが正常に作成されました');
         
         // タスク一覧ページにリダイレクト
-        window.location.href = '/tasks.html';
+        window.location.href = 'tasks.html';
     } catch (error) {
         console.error('タスク作成エラー詳細:', error);
         ApiClient.displayError(error);
@@ -946,20 +899,26 @@ function redistributeContributionValues(changedInput = null) {
     validateSubtaskContributions();
 }
 
-// DOMが読み込まれた後にページ初期化
+// ページ初期化処理の追加
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded イベントが発火しました');
-    // URLからページを判定して初期化
-    const path = window.location.pathname;
-    console.log('現在のパス:', path);
+    // 現在のページのパスを取得
+    const currentPage = window.location.pathname.split('/').pop();
     
-    if (path.includes('task-create.html')) {
-        console.log('タスク作成ページを初期化します');
+    // ページに応じた初期化関数を呼び出す
+    if (currentPage === 'task-create.html') {
         initTaskCreationPage();
+    } else if (currentPage === 'task-edit.html') {
+        initTaskEditPage();
+    } else if (currentPage === 'tasks.html') {
+        // タスク一覧ページの初期化
+        const taskListContainer = document.querySelector('.task-list');
+        if (taskListContainer) {
+            Tasks.renderTaskList(taskListContainer);
+        }
     }
 });
 
-// すべての関数をグローバルスコープで利用可能にする
+// グローバルに公開する関数
 window.addSubtaskField = addSubtaskField;
 window.removeSubtask = removeSubtask;
 window.redistributeContributionValues = redistributeContributionValues;
