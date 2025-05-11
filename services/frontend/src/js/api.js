@@ -52,7 +52,7 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     
     const url = `${baseUrl}${normalizedEndpoint}`;
-    console.log('Calling API:', url);  // デバッグ用ログ追加
+    console.log(`API呼び出し: ${method} ${url}`, data);  // デバッグ用ログ追加
     
     const headers = {
         'Content-Type': 'application/json'
@@ -81,27 +81,59 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
     }
     
     try {
+        console.log(`Fetch実行: ${method} ${url}`, options);
         const response = await fetch(url, options);
+        console.log(`Fetchレスポンス: ${response.status} ${response.statusText}`);
         
         // レスポンスをJSONとしてパース
         let responseData;
         const contentType = response.headers.get('content-type');
+        
         if (contentType && contentType.includes('application/json')) {
-            responseData = await response.json();
+            try {
+                responseData = await response.json();
+                console.log('JSONレスポンス:', responseData);
+            } catch (jsonError) {
+                console.error('JSONパースエラー:', jsonError);
+                const text = await response.text();
+                console.error('レスポンステキスト:', text);
+                throw new Error(`JSONパースエラー: ${jsonError.message}\nレスポンス: ${text}`);
+            }
         } else {
             responseData = await response.text();
+            console.log('テキストレスポンス:', responseData);
         }
         
         // エラーレスポンスの場合
         if (!response.ok) {
-            const error = new Error(responseData.detail || '不明なエラーが発生しました');
+            const errorMsg = typeof responseData === 'object' ? 
+                responseData.detail || JSON.stringify(responseData) : 
+                responseData || '不明なエラーが発生しました';
+            
+            console.error(`APIエラー [${response.status}]: ${errorMsg}`);
+            
+            const error = new Error(errorMsg);
             error.statusCode = response.status;
             error.responseData = responseData;
+            error.url = url;
+            error.method = method;
             throw error;
         }
         
         return responseData;
     } catch (error) {
+        // 通信エラーかどうか確認
+        if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+            console.error('ネットワークエラー:', error);
+            error.isFetchError = true;
+            error.url = url;
+            error.method = method;
+            
+            // バックエンドサーバーのURLを出力
+            console.error(`APIエンドポイント: ${url}`);
+            console.error('API_ENDPOINTS:', API_ENDPOINTS);
+        }
+        
         // 認証エラーの場合
         if (error.statusCode === 401) {
             // リフレッシュトークンを使って再認証
@@ -119,6 +151,12 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
         
         // その他のエラー
         console.error('API呼び出しエラー:', error);
+        if (error.url && error.method) {
+            console.error(`URL: ${error.url}, Method: ${error.method}`);
+        }
+        if (data) {
+            console.error('送信データ:', data);
+        }
         
         // エラーが発生した場合はモックデータを使用
         if (USE_MOCK_DATA) {
@@ -302,28 +340,77 @@ async function refreshToken() {
 
 /**
  * エラーメッセージの表示
- * @param {Error} error - エラーオブジェクト
+ * @param {Error|Object} error - エラーオブジェクトまたはカスタムエラー情報
  * @param {string} elementId - エラーメッセージを表示する要素のID
  */
 function displayError(error, elementId = 'error-message') {
     console.error('API Error:', error);
     
-    let errorMessage = error.message || '不明なエラーが発生しました';
+    // エラーがオブジェクトで、originalErrorプロパティがある場合は、そちらも出力
+    if (error.originalError) {
+        console.error('Original Error:', error.originalError);
+    }
+    
+    let errorMessage = '';
+    
+    // エラーメッセージを取得
+    if (typeof error === 'string') {
+        errorMessage = error;
+    } else if (error.message) {
+        errorMessage = error.message;
+    } else {
+        errorMessage = '不明なエラーが発生しました';
+    }
+    
+    // Fetchエラーやネットワークエラーの場合の特別なメッセージ
+    if (error.isFetchError || 
+        errorMessage.includes('Failed to fetch') || 
+        errorMessage.includes('NetworkError') ||
+        (error.originalError && error.originalError.message && 
+         error.originalError.message.includes('Failed to fetch'))) {
+            
+        errorMessage = 'サーバーとの通信に失敗しました。インターネット接続とバックエンドサーバーが正常に動作しているか確認してください。';
+        
+        // 問題のAPIエンドポイントを開発者向けに表示
+        const url = error.url || (error.originalError && error.originalError.url);
+        if (url) {
+            console.error(`問題のエンドポイント: ${url}`);
+            // 開発環境のみ詳細を表示
+            errorMessage += '\n\n開発者向け情報:';
+            errorMessage += `\nエンドポイント: ${url}`;
+            errorMessage += '\nサーバーが起動しているか、正しいポートで実行されているか確認してください。';
+        }
+    }
+    
+    // APIエンドポイント情報を追加（開発中のみ）
+    if (!errorMessage.includes('エンドポイント:') && error.url && process.env.NODE_ENV !== 'production') {
+        errorMessage += `\n(エンドポイント: ${error.method || ''} ${error.url})`;
+    }
     
     // レスポンスデータがある場合は詳細を追加
     if (error.responseData) {
-        errorMessage += `: ${JSON.stringify(error.responseData)}`;
+        if (typeof error.responseData === 'object') {
+            const details = JSON.stringify(error.responseData, null, 2);
+            console.log('エラー詳細:', details);
+            if (details.length < 100) {  // 短い場合のみ表示
+                errorMessage += `\n詳細: ${details}`;
+            }
+        } else {
+            errorMessage += `\n詳細: ${error.responseData}`;
+        }
     }
     
     const errorElement = document.getElementById(elementId);
     if (errorElement) {
         errorElement.textContent = errorMessage;
         errorElement.style.display = 'block';
+        // エラーメッセージ要素までスクロール
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
         
-        // 5秒後に非表示
+        // 10秒後に非表示
         setTimeout(() => {
             errorElement.style.display = 'none';
-        }, 5000);
+        }, 10000);
     } else {
         alert(errorMessage);
     }
@@ -381,6 +468,8 @@ const taskApi = {
     },
     
     updateTask: (taskId, taskData) => {
+        console.log('タスク更新データ:', taskData); // デバッグ用ログ追加
+        
         // フィールド名を変換
         const apiTaskData = {
             task_name: taskData.title || taskData.task_name,
@@ -390,8 +479,14 @@ const taskApi = {
             due_date: taskData.due_date,
             category: taskData.category,
             target_time: taskData.estimated_hours || taskData.target_time,
-            comment: taskData.comment
+            comment: taskData.comment || '',
+            
+            // オプションで送信するデータ
+            subtasks: taskData.subtasks || [],
+            daily_task_plans: taskData.daily_task_plans || [],
+            daily_time_plans: taskData.daily_time_plans || []
         };
+        console.log('API送信データ (更新):', apiTaskData);
         return apiCall('task', `/tasks/${taskId}`, 'PUT', apiTaskData);
     },
     
@@ -405,6 +500,7 @@ const taskApi = {
         apiCall('task', `/subtasks/task/${taskId}`, 'GET'),
     
     createSubtask: (taskId, subtaskData) => {
+        console.log(`サブタスク作成: タスクID=${taskId}`, subtaskData);
         // フィールド名を変換
         const apiSubtaskData = {
             subtask_name: subtaskData.title || subtaskData.subtask_name,
@@ -414,6 +510,7 @@ const taskApi = {
     },
     
     updateSubtask: (subtaskId, subtaskData) => {
+        console.log(`サブタスク更新: ID=${subtaskId}`, subtaskData);
         // フィールド名を変換
         const apiSubtaskData = {
             subtask_name: subtaskData.title || subtaskData.subtask_name,
@@ -422,8 +519,10 @@ const taskApi = {
         return apiCall('task', `/subtasks/${subtaskId}`, 'PUT', apiSubtaskData);
     },
     
-    deleteSubtask: (subtaskId) => 
-        apiCall('task', `/subtasks/${subtaskId}`, 'DELETE')
+    deleteSubtask: (subtaskId) => {
+        console.log(`サブタスク削除: ID=${subtaskId}`);
+        return apiCall('task', `/subtasks/${subtaskId}`, 'DELETE');
+    }
 };
 
 // 時間系API（仮実装例）

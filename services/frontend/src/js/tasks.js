@@ -347,38 +347,140 @@ function initTaskEditPage() {
                 return;
             }
             
-            // フォームデータの収集
-            const formData = {
-                task_name: document.getElementById('task-name').value,
-                task_content: document.getElementById('task-content').value,
-                recent_schedule: document.getElementById('recent-schedule').value,
-                start_date: document.getElementById('start-date').value,
-                due_date: document.getElementById('due-date').value,
-                category: document.getElementById('category').value,
-                target_time: parseInt(document.getElementById('target-time').value),
-                comment: document.getElementById('comment').value || '',
-                
-                // サブタスク情報
-                subtasks: collectSubtasks(),
-                
-                // 日次作業計画値
-                daily_task_plans: collectDailyTaskPlans(),
-                
-                // 日次作業時間計画値
-                daily_time_plans: collectDailyTimePlans()
-            };
-            
             try {
-                console.log('更新するタスクデータ:', formData);
-                await ApiClient.task.updateTask(taskId, formData);
+                // エラーメッセージを事前に非表示
+                const errorElement = document.getElementById('error-message');
+                if (errorElement) {
+                    errorElement.style.display = 'none';
+                }
                 
-                alert('タスクが正常に更新されました');
+                // 現在存在するサブタスクIDを取得
+                console.log('タスクID:', taskId);
+                const existingSubtasks = await ApiClient.task.getSubtasks(taskId);
+                console.log('既存のサブタスク:', existingSubtasks);
+                const existingSubtaskIds = existingSubtasks.map(s => s.subtask_id.toString());
+                console.log('既存のサブタスクID:', existingSubtaskIds);
+                
+                // サブタスク情報を収集
+                const currentSubtasks = collectSubtasks();
+                console.log('現在のサブタスク:', currentSubtasks);
+                
+                // フォームデータの収集（サブタスクを除く）
+                const formData = {
+                    task_name: document.getElementById('task-name').value,
+                    task_content: document.getElementById('task-content').value,
+                    recent_schedule: document.getElementById('recent-schedule').value,
+                    start_date: document.getElementById('start-date').value,
+                    due_date: document.getElementById('due-date').value,
+                    category: document.getElementById('category').value,
+                    target_time: parseInt(document.getElementById('target-time').value),
+                    comment: document.getElementById('comment').value || '',
+                    
+                    // 日次作業計画値
+                    daily_task_plans: collectDailyTaskPlans(),
+                    
+                    // 日次作業時間計画値
+                    daily_time_plans: collectDailyTimePlans()
+                };
+                
+                console.log('更新するタスクデータ:', formData);
+                
+                try {
+                    // 1. まずタスク本体を更新
+                    console.log('タスク本体更新開始...');
+                    const updatedTask = await ApiClient.task.updateTask(taskId, formData);
+                    console.log('タスク本体更新完了:', updatedTask);
+                } catch (taskUpdateError) {
+                    console.error('タスク本体更新に失敗:', taskUpdateError);
+                    throw new Error(`タスク本体の更新に失敗しました: ${taskUpdateError.message}`);
+                }
+                
+                // 2. サブタスクの作成・更新・削除を処理
+                const subtaskPromises = [];
+                const subtaskErrors = [];
+                
+                // 新規または更新するサブタスク
+                console.log('サブタスク処理開始...');
+                
+                for (const subtask of currentSubtasks) {
+                    if (subtask.subtask_id) {
+                        // 更新
+                        console.log(`サブタスク更新: ID=${subtask.subtask_id}`, subtask);
+                        subtaskPromises.push(
+                            ApiClient.task.updateSubtask(subtask.subtask_id, {
+                                subtask_name: subtask.subtask_name,
+                                contribution_value: subtask.contribution_value
+                            }).catch(err => {
+                                console.error(`サブタスク更新エラー: ID=${subtask.subtask_id}`, err);
+                                subtaskErrors.push(`サブタスク「${subtask.subtask_name}」の更新に失敗: ${err.message}`);
+                                return null;
+                            })
+                        );
+                    } else {
+                        // 新規作成
+                        console.log(`サブタスク作成: タスクID=${taskId}`, subtask);
+                        subtaskPromises.push(
+                            ApiClient.task.createSubtask(taskId, {
+                                subtask_name: subtask.subtask_name,
+                                contribution_value: subtask.contribution_value
+                            }).catch(err => {
+                                console.error(`サブタスク作成エラー: ${subtask.subtask_name}`, err);
+                                subtaskErrors.push(`サブタスク「${subtask.subtask_name}」の作成に失敗: ${err.message}`);
+                                return null;
+                            })
+                        );
+                    }
+                }
+                
+                // 削除対象のサブタスクを特定
+                const currentSubtaskIds = currentSubtasks
+                    .filter(s => s.subtask_id)
+                    .map(s => s.subtask_id.toString());
+                const subtasksToDelete = existingSubtaskIds.filter(
+                    id => !currentSubtaskIds.includes(id)
+                );
+                
+                // 削除処理
+                for (const subtaskId of subtasksToDelete) {
+                    console.log(`サブタスク削除: ID=${subtaskId}`);
+                    subtaskPromises.push(
+                        ApiClient.task.deleteSubtask(subtaskId).catch(err => {
+                            console.error(`サブタスク削除エラー: ID=${subtaskId}`, err);
+                            subtaskErrors.push(`サブタスクID ${subtaskId} の削除に失敗: ${err.message}`);
+                            return null;
+                        })
+                    );
+                }
+                
+                // すべてのサブタスク処理を待機
+                console.log('すべてのサブタスク処理を待機中...');
+                const subtaskResults = await Promise.all(subtaskPromises);
+                console.log('サブタスク処理完了:', subtaskResults);
+                
+                // エラーがある場合は警告を表示
+                if (subtaskErrors.length > 0) {
+                    console.warn('一部のサブタスク処理に失敗しました:', subtaskErrors);
+                    alert(`タスクは更新されましたが、一部のサブタスク処理に失敗しました:\n${subtaskErrors.join('\n')}`);
+                } else {
+                    alert('タスクが正常に更新されました');
+                }
                 
                 // タスク一覧ページにリダイレクト
                 window.location.href = 'tasks.html';
             } catch (error) {
                 console.error('タスク更新エラー詳細:', error);
-                ApiClient.displayError(error);
+                
+                // エラーメッセージに詳細情報を追加
+                let errorMsg = `タスク更新エラー: ${error.message}`;
+                if (error.stack) {
+                    console.error('スタックトレース:', error.stack);
+                }
+                
+                // APIクライアントのエラー表示関数を使用
+                ApiClient.displayError({
+                    message: errorMsg,
+                    originalError: error
+                });
             }
         });
     }
@@ -410,21 +512,27 @@ async function loadTaskForEdit(taskId) {
         
         // サブタスクの読み込みと表示
         const subtasks = await ApiClient.task.getSubtasks(taskId);
+        console.log('取得したサブタスク:', subtasks);
+        
         const subtasksContainer = document.getElementById('subtasks-container');
         subtasksContainer.innerHTML = ''; // 既存のサブタスクをクリア
         
         if (subtasks && subtasks.length > 0) {
-            subtasks.forEach((subtask, index) => {
-                addSubtaskField(subtask);
-            });
+            // サブタスクを順番に追加
+            for (const subtask of subtasks) {
+                addSubtaskField({
+                    subtask_id: subtask.subtask_id,
+                    subtask_name: subtask.subtask_name,
+                    contribution_value: subtask.contribution_value
+                });
+            }
         } else {
             // サブタスクがない場合は初期フィールドを追加
             addSubtaskField();
         }
         
-        // 日次プランの取得と表示（あれば）
-        // 注: APIに日次プラン取得メソッドがある場合はそれを使用
-        updateInitialValues();
+        // 日次プランの取得と表示
+        await updateInitialValues();
         
     } catch (error) {
         console.error('タスク読み込みエラー:', error);
@@ -445,16 +553,16 @@ function addSubtaskField(subtaskData = null) {
     console.log('現在のサブタスク数:', index);
     
     // 編集モードの場合は、既存の値を使用
-    if (subtaskData) {
+    if (subtaskData && subtaskData.subtask_id) {
         const contributionValue = subtaskData.contribution_value;
-        console.log('既存のサブタスクデータを使用:', contributionValue);
+        console.log('既存のサブタスクデータを使用:', subtaskData);
         
         const subtaskHtml = `
             <div class="row g-3 subtask-row mb-3" data-index="${index}">
                 <div class="col-md-6">
                     <label for="subtask-name-${index}" class="form-label">サブタスク名</label>
                     <input type="text" class="form-control subtask-name" id="subtask-name-${index}" 
-                           value="${subtaskData.subtask_name}" required>
+                           value="${subtaskData.subtask_name || ''}" required>
                 </div>
                 <div class="col-md-4">
                     <label for="subtask-contrib-${index}" class="form-label">作業貢献値（%）</label>
@@ -470,16 +578,18 @@ function addSubtaskField(subtaskData = null) {
         `;
         
         container.insertAdjacentHTML('beforeend', subtaskHtml);
-        console.log('サブタスクHTMLを追加しました');
+        console.log('サブタスクHTMLを追加しました:', subtaskData.subtask_id);
         validateSubtaskContributions();
     } else {
         // 新規追加の場合は、空のフィールドを追加してから全ての貢献値を均等分配
+        const subtaskName = subtaskData && subtaskData.subtask_name ? subtaskData.subtask_name : '';
+        
         const subtaskHtml = `
             <div class="row g-3 subtask-row mb-3" data-index="${index}">
                 <div class="col-md-6">
                     <label for="subtask-name-${index}" class="form-label">サブタスク名</label>
                     <input type="text" class="form-control subtask-name" id="subtask-name-${index}" 
-                           value="" required>
+                           value="${subtaskName}" required>
                 </div>
                 <div class="col-md-4">
                     <label for="subtask-contrib-${index}" class="form-label">作業貢献値（%）</label>
@@ -495,7 +605,7 @@ function addSubtaskField(subtaskData = null) {
         `;
         
         container.insertAdjacentHTML('beforeend', subtaskHtml);
-        console.log('空のサブタスクHTMLを追加しました');
+        console.log('新規サブタスクHTMLを追加しました');
         
         // すべてのサブタスクに均等に貢献値を再配分
         redistributeSubtaskContributions();
@@ -532,6 +642,12 @@ function redistributeSubtaskContributions() {
  */
 function removeSubtask(button) {
     const row = button.closest('.subtask-row');
+    
+    // 削除確認
+    const confirmation = confirm('このサブタスクを削除してもよろしいですか？');
+    if (!confirmation) return;
+    
+    // UIから削除（API削除はフォーム送信時に行う）
     row.remove();
     
     // 削除後に残ったサブタスクの作業貢献値を再調整
@@ -789,10 +905,23 @@ function collectSubtasks() {
     const container = document.getElementById('subtasks-container');
     const subtasks = container.getElementsByClassName('subtask-row');
     
+    // 現在表示されているサブタスクの情報を収集
     return Array.from(subtasks).map(subtask => {
+        const subtaskInput = subtask.querySelector('.subtask-contrib');
+        // サブタスクIDを適切に取得（空文字や未定義の場合はnullに設定）
+        let subtaskId = subtaskInput.dataset.subtaskId;
+        subtaskId = subtaskId && subtaskId.trim() !== '' ? subtaskId : null;
+        
+        // 名前と貢献値
+        const subtaskName = subtask.querySelector('.subtask-name').value.trim();
+        const contributionValue = parseFloat(subtaskInput.value) || 0;
+        
+        console.log(`サブタスク収集: ID=${subtaskId}, 名前=${subtaskName}, 貢献値=${contributionValue}`);
+        
         return {
-            subtask_name: subtask.querySelector('.subtask-name').value,
-            contribution_value: parseFloat(subtask.querySelector('.subtask-contrib').value)
+            subtask_id: subtaskId,
+            subtask_name: subtaskName,
+            contribution_value: contributionValue
         };
     });
 }
@@ -842,16 +971,18 @@ function redistributeContributionValues(changedInput = null) {
     
     // 変更された入力があれば、その値を優先
     if (changedInput) {
-        const value = parseFloat(changedInput.value) || 0;
+        let value = parseFloat(changedInput.value) || 0;
         const maxValue = 100;
         
         // 最大値を超えないように制限
         if (value > maxValue) {
+            value = maxValue;
             changedInput.value = maxValue;
         }
         
         // 負の値を入力できないように制限
         if (value < 0) {
+            value = 0;
             changedInput.value = 0;
         }
     }
@@ -859,10 +990,12 @@ function redistributeContributionValues(changedInput = null) {
     // 現在の合計値を計算
     let total = 0;
     let changedValue = 0;
+    const inputs = [];
     
     subtasks.forEach(subtask => {
         const input = subtask.querySelector('.subtask-contrib');
         const value = parseFloat(input.value) || 0;
+        inputs.push(input);
         
         if (input === changedInput) {
             changedValue = value;
@@ -878,21 +1011,56 @@ function redistributeContributionValues(changedInput = null) {
     if (currentTotal > 100 && changedInput) {
         // 調整が必要な差分
         const diff = currentTotal - 100;
-        const remainingSubtasks = count - 1; // 変更された入力以外の数
+        const remainingInputs = inputs.filter(input => input !== changedInput);
+        const remainingTotal = total;
         
-        if (remainingSubtasks > 0) {
-            // 差分を他のサブタスクに均等に振り分ける
-            const adjustValue = Math.ceil(diff / remainingSubtasks);
-            
+        if (remainingInputs.length > 0 && remainingTotal > 0) {
+            // 差分を他のサブタスクに比例配分で振り分ける
+            remainingInputs.forEach(input => {
+                const currentValue = parseFloat(input.value) || 0;
+                const ratio = currentValue / remainingTotal;
+                const adjustment = diff * ratio;
+                const newValue = Math.max(0, currentValue - adjustment);
+                input.value = newValue.toFixed(2);
+            });
+        } else if (remainingInputs.length > 0) {
+            // 残りがすべて0の場合は、変更された入力を100にして他は0に
+            changedInput.value = 100;
+            remainingInputs.forEach(input => {
+                input.value = 0;
+            });
+        }
+    }
+    
+    // 合計が100未満の場合、残りを比例配分
+    else if (currentTotal < 100) {
+        const remaining = 100 - currentTotal;
+        
+        // 他の値の合計
+        if (total > 0) {
+            // 比例配分
             subtasks.forEach(subtask => {
                 const input = subtask.querySelector('.subtask-contrib');
-                
                 if (input !== changedInput) {
                     const currentValue = parseFloat(input.value) || 0;
-                    const newValue = Math.max(0, currentValue - adjustValue);
-                    input.value = newValue;
+                    const ratio = currentValue / total;
+                    const addition = remaining * ratio;
+                    const newValue = currentValue + addition;
+                    input.value = newValue.toFixed(2);
                 }
             });
+        } else {
+            // すべて0の場合は均等に分配
+            const remainingInputs = inputs.filter(input => input !== changedInput);
+            if (remainingInputs.length > 0) {
+                const equalShare = remaining / remainingInputs.length;
+                remainingInputs.forEach(input => {
+                    input.value = equalShare.toFixed(2);
+                });
+            } else if (changedInput) {
+                // 入力が1つだけなら100%
+                changedInput.value = 100;
+            }
         }
     }
     
