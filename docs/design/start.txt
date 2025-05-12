@@ -1,0 +1,18 @@
+必要モジュールをインストール
+sudo apt-get update
+sudo apt-get install -y libpq-dev python3-dev
+
+pip install -r requirements.txt
+pip install -r services/auth-service/requirements.txt
+pip install -r services/task-service/requirements.txt
+
+
+dockerのネットワークを作成
+docker network create task-management-network
+
+コンテナを立ち上げる
+docker-compose -f docker-compose.yml up -d
+docker-compose -f services/auth-service/docker-compose.yml up -d
+docker-compose -f services/task-service/docker-compose.yml up -d
+docker-compose -f services/frontend/docker-compose.yml up -d
+
