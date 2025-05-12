@@ -8,3 +8,4 @@ alwaysApply: true
 - ターミナルからコマンド操作するときは、必ずプロジェクトのルートディレクトリをカレントディレクトリとして行ってください
 - ターミナルからコマンドを入力するときは、必ず/home/ouchi/task_management_app/venvの仮想環境内に入っていることを確認してから行ってください
 - プロジェクトの構成として、/home/ouchi/task_management_app/docs/design/configuration.txtを参照してください
+- このアプリの開発環境はWSL2上のUbuntuで、ウェブアプリの動作確認はホストPCのWindows上のブラウザで行います
