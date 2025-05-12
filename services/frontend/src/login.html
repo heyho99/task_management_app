@@ -24,6 +24,7 @@
                     <input type="password" id="password" name="password" class="form-control" value="password" required>
                 </div>
                 <button type="submit" class="btn btn-primary">ログイン</button>
+                <button type="button" class="btn btn-secondary" id="register-btn">ユーザー登録</button>
             </form>
             
             <div class="mt-3">
@@ -44,6 +45,7 @@
             const apiEndpointElem = document.getElementById('api-endpoint');
             const debugInfo = document.getElementById('debug-info');
             const debugPre = debugInfo.querySelector('pre');
+            const registerBtn = document.getElementById('register-btn');
             
             // デバッグ情報表示用ヘルパー関数
             function showDebugInfo(title, data) {
@@ -68,35 +70,70 @@
                 apiEndpointElem.textContent = '未定義';
             }
             
+            // ユーザー登録ボタンのクリックイベント
+            registerBtn.addEventListener('click', async () => {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                if (!username || !password) {
+                    errorMessage.textContent = 'ユーザー名とパスワードを入力してください';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+                
+                try {
+                    const registerUrl = API_ENDPOINTS.auth + '/v1/auth/register';
+                    const response = await fetch(registerUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            username: username,
+                            password: password
+                        })
+                    });
+                    
+                    const responseData = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(responseData.detail || '登録に失敗しました');
+                    }
+                    
+                    errorMessage.textContent = 'ユーザー登録が完了しました。ログインしてください。';
+                    errorMessage.className = 'alert alert-success';
+                    errorMessage.style.display = 'block';
+                } catch (error) {
+                    errorMessage.textContent = error.message || '登録に失敗しました';
+                    errorMessage.className = 'alert alert-danger';
+                    errorMessage.style.display = 'block';
+                }
+            });
+            
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
                 const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
                 errorMessage.style.display = 'none';
+                errorMessage.className = 'alert alert-danger';
                 debugInfo.style.display = 'none';
                 
                 try {
-                    // FormDataを使用する場合
-                    const formData = new FormData();
-                    formData.append('username', username);
-                    formData.append('password', password);
-                    
-                    showDebugInfo("FormDataを使用 (表示用)", {
-                        username: username,
-                        password: password
-                    });
-                    
                     // URLエンコードされたフォームデータを使用する場合
                     const urlEncodedData = new URLSearchParams();
                     urlEncodedData.append('username', username);
                     urlEncodedData.append('password', password);
                     
+                    showDebugInfo("送信データ", {
+                        username: username,
+                        password: password
+                    });
+                    
                     // 直接Fetchを使用してリクエスト
                     const authUrl = API_ENDPOINTS.auth + '/v1/auth/login';
                     console.log('認証URLにリクエスト送信:', authUrl);
                     
-                    // 試行1: URLエンコードされたフォームデータを使用
                     const response = await fetch(authUrl, {
                         method: 'POST',
                         headers: {
@@ -139,20 +176,9 @@
                         window.location.href = 'index.html';
                     } else {
                         console.warn('レスポンスにトークンがありません:', data);
-                        
-                        // 開発用: 仮のトークンを生成して進める
-                        const devToken = "dummy_development_token_1234567890";
-                        localStorage.setItem('auth_token', devToken);
-                        console.log('開発用トークンが設定されました:', devToken);
-                        alert('開発用の仮トークンを設定しました。実際の認証サービスは準備中です。');
-                        
-                        // メインページへリダイレクト
-                        window.location.href = 'index.html';
-                        
-                        // 以下は通常のエラー表示コード（開発モードでは実行されない）
-                        // showDebugInfo("トークンがありません", data);
-                        // errorMessage.textContent = 'レスポンスにアクセストークンがありません。APIの応答形式を確認してください。';
-                        // errorMessage.style.display = 'block';
+                        showDebugInfo("トークンがありません", data);
+                        errorMessage.textContent = 'レスポンスにアクセストークンがありません。APIの応答形式を確認してください。';
+                        errorMessage.style.display = 'block';
                     }
                 } catch (error) {
                     console.error('ログインエラー:', error);
