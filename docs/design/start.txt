@@ -16,3 +16,11 @@ docker-compose -f services/auth-service/docker-compose.yml up -d
 docker-compose -f services/task-service/docker-compose.yml up -d
 docker-compose -f services/frontend/docker-compose.yml up -d
 
+
+会社PCでうまく動かない件について
+・家で接続したときはなぜかlocalhostでアクセスできた（ふつうはubuntuサーバのIPが必要なはず）
+・会社からはlocalhost/login.htmlでアクセスできず、IP/login.htmlでアクセスできた
+・システム間通信はlocalhostで問題ないはずだが、例えばブラウザからログインした後にlocalhost/index.htmlとかに行ってしまうと無理か
+→まずはlocalhostで動いているのか確認
+→次になぜlocalhostで動いているのか確認
+→会社PCでもアクセスできるような設定にする
