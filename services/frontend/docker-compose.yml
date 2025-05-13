@@ -7,7 +7,7 @@ services:
     # 同じディレクトリにあるDockerfileを使用してイメージをビルド
     build: .
     ports:
-      - "80:80"
+      - "8080:80"
     volumes:
       # docker-compose.yml ファイルがある場所からの相対パスのsrcディレクトリを
       # コンテナ内の/usr/share/nginx/htmlディレクトリにマウント
