@@ -419,15 +419,30 @@ function initTaskEditPage() {
                     } else {
                         // 新規作成
                         console.log(`サブタスク作成: タスクID=${taskId}`, subtask);
+                        
+                        // APIに送信するデータを整形
+                        const newSubtaskData = {
+                            subtask_name: subtask.subtask_name,
+                            contribution_value: subtask.contribution_value
+                        };
+                        console.log('新規サブタスク送信データ:', newSubtaskData);
+                        
+                        // 貢献値のバリデーション（小数点表示を修正）
+                        if (newSubtaskData.contribution_value % 1 !== 0) {
+                            newSubtaskData.contribution_value = parseFloat(newSubtaskData.contribution_value.toFixed(2));
+                        }
+                        
                         subtaskPromises.push(
-                            ApiClient.task.createSubtask(taskId, {
-                                subtask_name: subtask.subtask_name,
-                                contribution_value: subtask.contribution_value
-                            }).catch(err => {
-                                console.error(`サブタスク作成エラー: ${subtask.subtask_name}`, err);
-                                subtaskErrors.push(`サブタスク「${subtask.subtask_name}」の作成に失敗: ${err.message}`);
-                                return null;
-                            })
+                            ApiClient.task.createSubtask(taskId, newSubtaskData)
+                                .then(response => {
+                                    console.log('サブタスク作成成功:', response);
+                                    return response;
+                                })
+                                .catch(err => {
+                                    console.error(`サブタスク作成エラー: ${subtask.subtask_name}`, err);
+                                    subtaskErrors.push(`サブタスク「${subtask.subtask_name}」の作成に失敗: ${err.message}`);
+                                    return null;
+                                })
                         );
                     }
                 }
@@ -581,7 +596,7 @@ function addSubtaskField(subtaskData = null) {
         console.log('サブタスクHTMLを追加しました:', subtaskData.subtask_id);
         validateSubtaskContributions();
     } else {
-        // 新規追加の場合は、空のフィールドを追加してから全ての貢献値を均等分配
+        // 新規追加の場合は、まず要素を追加
         const subtaskName = subtaskData && subtaskData.subtask_name ? subtaskData.subtask_name : '';
         
         const subtaskHtml = `
@@ -595,7 +610,7 @@ function addSubtaskField(subtaskData = null) {
                     <label for="subtask-contrib-${index}" class="form-label">作業貢献値（%）</label>
                     <input type="number" class="form-control subtask-contrib" id="subtask-contrib-${index}" 
                            min="1" max="100" value="0" 
-                           data-subtask-id=""
+                           data-subtask-id="null"
                            step="0.01" onchange="window.redistributeContributionValues(this)" required>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
@@ -608,7 +623,17 @@ function addSubtaskField(subtaskData = null) {
         console.log('新規サブタスクHTMLを追加しました');
         
         // すべてのサブタスクに均等に貢献値を再配分
-        redistributeSubtaskContributions();
+        const totalCount = container.getElementsByClassName('subtask-row').length;
+        const equalContribution = (100 / totalCount).toFixed(2);
+        console.log(`新規サブタスク追加後の均等分配値: ${equalContribution}% (${totalCount}個のサブタスク)`);
+        
+        // 貢献値を設定
+        Array.from(container.getElementsByClassName('subtask-row')).forEach(subtask => {
+            const input = subtask.querySelector('.subtask-contrib');
+            input.value = equalContribution;
+        });
+        
+        validateSubtaskContributions();
     }
 }
 
@@ -842,6 +867,27 @@ function validateSubtaskContributions() {
         errorElement.style.display = isValid ? 'none' : 'block';
     }
     
+    // 合計が100でない場合、自動的に調整を試みる
+    if (!isValid && subtasks.length > 0) {
+        // 均等な貢献値を計算
+        const equalContribution = (100 / subtasks.length).toFixed(2);
+        console.log(`貢献値を自動調整します: ${equalContribution}% (${subtasks.length}個のサブタスク)`);
+        
+        // すべてのサブタスクに均等な値を設定
+        Array.from(subtasks).forEach(subtask => {
+            const input = subtask.querySelector('.subtask-contrib');
+            input.value = equalContribution;
+        });
+        
+        // エラー表示を更新
+        if (errorElement) {
+            errorElement.textContent = '';
+            errorElement.style.display = 'none';
+        }
+        
+        return true;
+    }
+    
     return isValid;
 }
 
@@ -906,17 +952,22 @@ function collectSubtasks() {
     const subtasks = container.getElementsByClassName('subtask-row');
     
     // 現在表示されているサブタスクの情報を収集
-    return Array.from(subtasks).map(subtask => {
+    const result = Array.from(subtasks).map(subtask => {
         const subtaskInput = subtask.querySelector('.subtask-contrib');
         // サブタスクIDを適切に取得（空文字や未定義の場合はnullに設定）
         let subtaskId = subtaskInput.dataset.subtaskId;
-        subtaskId = subtaskId && subtaskId.trim() !== '' ? subtaskId : null;
+        
+        // 空文字、"undefined"、undefined をすべてnullとして扱う
+        subtaskId = (subtaskId && subtaskId.trim() !== '' && subtaskId !== 'undefined' && subtaskId !== 'null') ? parseInt(subtaskId) : null;
         
         // 名前と貢献値
         const subtaskName = subtask.querySelector('.subtask-name').value.trim();
-        const contributionValue = parseFloat(subtaskInput.value) || 0;
+        let contributionValue = parseFloat(subtaskInput.value) || 0;
         
-        console.log(`サブタスク収集: ID=${subtaskId}, 名前=${subtaskName}, 貢献値=${contributionValue}`);
+        // 小数点以下2桁に丸める
+        contributionValue = parseFloat(contributionValue.toFixed(2));
+        
+        console.log(`サブタスク収集: ID=${subtaskId}, 名前=${subtaskName}, 貢献値=${contributionValue}, 型=${typeof subtaskId}`);
         
         return {
             subtask_id: subtaskId,
@@ -924,6 +975,25 @@ function collectSubtasks() {
             contribution_value: contributionValue
         };
     });
+    
+    // 合計値確認
+    const total = result.reduce((sum, item) => sum + item.contribution_value, 0);
+    console.log(`サブタスク貢献値合計: ${total.toFixed(2)}%`);
+    
+    // 合計が100でない場合は調整
+    if (Math.abs(total - 100) > 0.1 && result.length > 0) {
+        console.log('貢献値合計が100%でないため調整します');
+        const adjustment = (100 - total) / result.length;
+        for (let i = 0; i < result.length; i++) {
+            result[i].contribution_value = parseFloat((result[i].contribution_value + adjustment).toFixed(2));
+        }
+        
+        // 調整後の合計を再確認
+        const adjustedTotal = result.reduce((sum, item) => sum + item.contribution_value, 0);
+        console.log(`調整後サブタスク貢献値合計: ${adjustedTotal.toFixed(2)}%`);
+    }
+    
+    return result;
 }
 
 /**

@@ -11,11 +11,20 @@ const API_ENDPOINTS = {
     report: 'http://localhost:8005/api/v1' // レポートサービス
 };
 
-// モックデータを使用するフラグ
-const USE_MOCK_DATA = false; // 実際のAPIを使用する
+// Docker環境用のエンドポイント
+const DOCKER_API_ENDPOINTS = {
+    auth: 'http://localhost:8001/api',                // 認証サービス
+    task: 'http://localhost:8002/api/v1',          // タスクサービス
+    time: 'http://localhost:8003/api/v1',          // 時間サービス
+    group: 'http://localhost:8004/api/v1',         // グループサービス
+    report: 'http://localhost:8005/api/v1'         // レポートサービス
+};
+
+// 環境に応じたエンドポイントを選択
+const CURRENT_ENDPOINTS = window.location.hostname === 'localhost' ? API_ENDPOINTS : DOCKER_API_ENDPOINTS;
 
 // グローバルに公開
-window.API_ENDPOINTS = API_ENDPOINTS;
+window.API_ENDPOINTS = CURRENT_ENDPOINTS;
 
 /**
  * 認証用トークンの取得
@@ -36,14 +45,8 @@ function getAuthToken() {
  * @param {boolean} requiresAuth - 認証が必要かどうか
  * @returns {Promise} レスポンスデータのPromise
  */
-async function apiCall(service, endpoint, method = 'GET', data = null, requiresAuth = false) {
-    // モックデータを使用する場合
-    if (USE_MOCK_DATA && service === 'task') {
-        console.log('Using mock data for:', endpoint, method, data);
-        return getMockData(endpoint, method, data);
-    }
-
-    const baseUrl = API_ENDPOINTS[service];
+async function apiCall(service, endpoint, method = 'GET', data = null, requiresAuth = true) {
+    const baseUrl = CURRENT_ENDPOINTS[service];
     if (!baseUrl) {
         throw new Error(`不明なサービス: ${service}`);
     }
@@ -55,7 +58,8 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
     console.log(`API呼び出し: ${method} ${url}`, data);  // デバッグ用ログ追加
     
     const headers = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
     };
     
     // 認証トークンが必要な場合は追加
@@ -69,10 +73,25 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
         }
     }
     
+    // CORS設定を環境に応じて調整
+    let corsOptions = {
+        mode: 'cors',
+        credentials: 'include'
+    };
+    
+    // Docker環境ではクレデンシャルの送信方法を変更
+    if (window.location.hostname === 'localhost' && 
+        (window.location.port === '8080' || window.location.port === '80')) {
+        corsOptions = {
+            mode: 'cors',
+            credentials: 'same-origin'
+        };
+    }
+    
     const options = {
         method,
         headers,
-        credentials: 'include' // クッキーを含める
+        ...corsOptions
     };
     
     // データがある場合はJSONに変換してリクエストボディに追加
@@ -131,7 +150,7 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
             
             // バックエンドサーバーのURLを出力
             console.error(`APIエンドポイント: ${url}`);
-            console.error('API_ENDPOINTS:', API_ENDPOINTS);
+            console.error('API_ENDPOINTS:', CURRENT_ENDPOINTS);
         }
         
         // 認証エラーの場合
@@ -158,162 +177,8 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
             console.error('送信データ:', data);
         }
         
-        // エラーが発生した場合はモックデータを使用
-        if (USE_MOCK_DATA) {
-            console.log('APIエラー発生: モックデータを使用します');
-            return getMockData(endpoint, method, data);
-        }
-        
         throw error;
     }
-}
-
-/**
- * モックデータの取得
- * @param {string} endpoint - エンドポイント
- * @param {string} method - HTTPメソッド
- * @param {Object} data - リクエストデータ
- * @returns {Object} モックデータ
- */
-function getMockData(endpoint, method = 'GET', data = null) {
-    console.log('Getting mock data for:', endpoint, method, data);
-    
-    // タスク一覧のモックデータ
-    if (endpoint === '/tasks/' && method === 'GET') {
-        return [
-            {
-                task_id: 1,
-                user_id: 1,
-                task_name: "サンプルタスク1",
-                task_content: "これはサンプルタスクの説明です。",
-                start_date: "2023-05-01",
-                due_date: "2023-05-30",
-                category: "開発",
-                target_time: 120,
-                progress: 30,
-                subtasks: [
-                    {
-                        subtask_id: 1,
-                        task_id: 1,
-                        subtask_name: "サブタスク1",
-                        contribution_value: 50,
-                        progress: 60
-                    }
-                ]
-            },
-            {
-                task_id: 2,
-                user_id: 1,
-                task_name: "サンプルタスク2",
-                task_content: "もう一つのサンプルタスクです。",
-                start_date: "2023-05-15",
-                due_date: "2023-06-15",
-                category: "テスト",
-                target_time: 60,
-                progress: 0,
-                subtasks: []
-            }
-        ];
-    }
-    
-    // 特定のタスク詳細のモックデータ
-    if (endpoint.startsWith('/tasks/') && endpoint !== '/tasks/' && method !== 'POST') {
-        const taskId = parseInt(endpoint.split('/').pop());
-        return {
-            task_id: taskId,
-            user_id: 1,
-            task_name: `タスク ${taskId}`,
-            task_content: `タスク ${taskId} の詳細説明`,
-            start_date: "2023-05-01",
-            due_date: "2023-05-30",
-            category: "開発",
-            target_time: 120,
-            progress: 30,
-            subtasks: []
-        };
-    }
-    
-    // タスク作成のモックレスポンス
-    if (endpoint === '/tasks/' && method === 'POST') {
-        return {
-            task_id: 999,
-            user_id: 1,
-            task_name: data?.task_name || "新規タスク",
-            task_content: data?.task_content || "新規タスクの内容",
-            recent_schedule: data?.recent_schedule || "",
-            start_date: data?.start_date || "2023-05-01",
-            due_date: data?.due_date || "2023-05-30",
-            category: data?.category || "その他",
-            target_time: data?.target_time || 60,
-            comment: data?.comment || "",
-            progress: 0
-        };
-    }
-    
-    // サブタスクのモックデータ
-    if (endpoint.startsWith('/subtasks/task/')) {
-        const taskId = parseInt(endpoint.split('/').pop());
-        return [
-            {
-                subtask_id: 1,
-                task_id: taskId,
-                subtask_name: `サブタスク1 for タスク${taskId}`,
-                contribution_value: 50,
-                progress: 60
-            },
-            {
-                subtask_id: 2,
-                task_id: taskId,
-                subtask_name: `サブタスク2 for タスク${taskId}`,
-                contribution_value: 30,
-                progress: 0
-            }
-        ];
-    }
-    
-    // タスク初期値計算のモックデータ
-    if (endpoint === '/tasks/calculate-initial-values') {
-        const startDate = data?.start_date || new Date().toISOString().split('T')[0];
-        const dueDate = data?.due_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const targetTime = data?.target_time || 120;
-        const subtaskCount = data?.subtask_count || 1;
-        
-        // 日付の差分を計算
-        const start = new Date(startDate);
-        const end = new Date(dueDate);
-        const daysDiff = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
-        
-        // 日次計画値
-        const dailyTaskPlans = [];
-        const dailyTimePlans = [];
-        const baseTaskPlanValue = 100 / daysDiff;
-        const baseTimePlanValue = targetTime / daysDiff;
-        
-        for (let i = 0; i < daysDiff; i++) {
-            const date = new Date(start);
-            date.setDate(date.getDate() + i);
-            const dateStr = date.toISOString().split('T')[0];
-            
-            dailyTaskPlans.push({
-                date: dateStr,
-                task_plan_value: baseTaskPlanValue
-            });
-            
-            dailyTimePlans.push({
-                date: dateStr,
-                time_plan_value: baseTimePlanValue
-            });
-        }
-        
-        return {
-            subtask_contribution_value: 100 / subtaskCount,
-            daily_task_plans: dailyTaskPlans,
-            daily_time_plans: dailyTimePlans
-        };
-    }
-    
-    // デフォルトの空データ
-    return [];
 }
 
 /**
@@ -321,7 +186,7 @@ function getMockData(endpoint, method = 'GET', data = null) {
  * @returns {Promise} 認証結果のPromise
  */
 async function refreshToken() {
-    const response = await fetch(`${API_ENDPOINTS.auth}/auth/refresh`, {
+    const response = await fetch(`${CURRENT_ENDPOINTS.auth}/auth/refresh`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -400,6 +265,10 @@ function displayError(error, elementId = 'error-message') {
         }
     }
     
+    // ログには必ず出力
+    console.error('表示するエラーメッセージ:', errorMessage);
+    
+    // 指定されたIDの要素があれば、そこに表示
     const errorElement = document.getElementById(elementId);
     if (errorElement) {
         errorElement.textContent = errorMessage;
@@ -412,8 +281,46 @@ function displayError(error, elementId = 'error-message') {
             errorElement.style.display = 'none';
         }, 10000);
     } else {
-        alert(errorMessage);
+        // ウィンドウを表示せず、ページ内に新しいエラー表示要素を動的に作成
+        const newErrorElement = document.createElement('div');
+        newErrorElement.className = 'alert alert-danger fixed-top mx-auto mt-3';
+        newErrorElement.style.width = '80%';
+        newErrorElement.style.maxWidth = '600px';
+        newErrorElement.style.zIndex = '9999';
+        
+        // 改行をHTMLの改行に変換
+        newErrorElement.innerHTML = errorMessage.replace(/\n/g, '<br>');
+        
+        // 閉じるボタンを追加
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn-close';
+        closeButton.style.position = 'absolute';
+        closeButton.style.right = '10px';
+        closeButton.style.top = '10px';
+        closeButton.addEventListener('click', () => {
+            if (document.body.contains(newErrorElement)) {
+                document.body.removeChild(newErrorElement);
+            }
+        });
+        newErrorElement.appendChild(closeButton);
+        
+        // ページに追加
+        document.body.appendChild(newErrorElement);
+        
+        // 10秒後に自動的に非表示
+        setTimeout(() => {
+            if (document.body.contains(newErrorElement)) {
+                document.body.removeChild(newErrorElement);
+            }
+        }, 10000);
     }
+    
+    // エラー情報を返す（後続の処理で使用できるようにするため）
+    return {
+        message: errorMessage,
+        originalError: error
+    };
 }
 
 // 認証系API
@@ -433,12 +340,15 @@ const authApi = {
 
 // タスク系API
 const taskApi = {
+    // タスク一覧取得
     getTasks: (params = {}) => 
         apiCall('task', '/tasks/', 'GET'),
     
+    // 特定タスク取得
     getTask: (taskId) => 
         apiCall('task', `/tasks/${taskId}`, 'GET'),
     
+    // タスク作成
     createTask: (taskData) => {
         console.log('フォームデータ:', taskData); // デバッグ用ログ
         
@@ -467,6 +377,7 @@ const taskApi = {
         return apiCall('task', '/tasks/', 'POST', apiTaskData);
     },
     
+    // タスク更新
     updateTask: (taskId, taskData) => {
         console.log('タスク更新データ:', taskData); // デバッグ用ログ追加
         
@@ -490,15 +401,19 @@ const taskApi = {
         return apiCall('task', `/tasks/${taskId}`, 'PUT', apiTaskData);
     },
     
+    // タスク削除
     deleteTask: (taskId) => 
         apiCall('task', `/tasks/${taskId}`, 'DELETE'),
     
+    // 初期値計算API
     calculateInitialValues: (formData) => 
         apiCall('task', '/tasks/calculate-initial-values', 'POST', formData),
     
+    // サブタスク取得
     getSubtasks: (taskId) => 
         apiCall('task', `/subtasks/task/${taskId}`, 'GET'),
     
+    // サブタスク作成
     createSubtask: (taskId, subtaskData) => {
         console.log(`サブタスク作成: タスクID=${taskId}`, subtaskData);
         // フィールド名を変換
@@ -509,6 +424,7 @@ const taskApi = {
         return apiCall('task', `/subtasks/task/${taskId}`, 'POST', apiSubtaskData);
     },
     
+    // サブタスク更新
     updateSubtask: (subtaskId, subtaskData) => {
         console.log(`サブタスク更新: ID=${subtaskId}`, subtaskData);
         // フィールド名を変換
@@ -519,6 +435,7 @@ const taskApi = {
         return apiCall('task', `/subtasks/${subtaskId}`, 'PUT', apiSubtaskData);
     },
     
+    // サブタスク削除
     deleteSubtask: (subtaskId) => {
         console.log(`サブタスク削除: ID=${subtaskId}`);
         return apiCall('task', `/subtasks/${subtaskId}`, 'DELETE');
