@@ -25,16 +25,18 @@ docker-compose -f services/frontend/docker-compose.yml up -d
 →次になぜlocalhostで動いているのか確認
 →会社PCでもアクセスできるような設定にする
 
-WSL2とWindowsのローカルホスト接続について説明します。
-WSL2（Windows Subsystem for Linux）はWindows上で動作するLinux環境です。WindowsホストとWSL2間で通信ができるようにネットワーク接続が自動的に設定されています。
-主な理由：
-WSL2とWindowsはネットワークブリッジで接続されています
-WSLでdockerコンテナをポート公開（8001など）すると、Windowsホスト側からもそのポートにアクセス可能になります
-ホストPCのブラウザ（Windows側）からlocalhostでWSL内のサービスにアクセスできます
-設定を確認すると：
-フロントエンドサービス：0.0.0.0:80->80/tcp（Windowsのブラウザからlocalhostでアクセス可能）
-認証サービス：0.0.0.0:8001->8000/tcp（Windowsからlocalhost:8001でアクセス可能）
-構成としては：
-WindowsのブラウザがHTMLやJSをフロントエンドコンテナから取得（localhost:80）
-JSがAPIサーバー（localhost:8001）に通信
-実際のサーバーはWSL内のDockerコンテナで動作
+frontendのapi.jsについて、下のとか{CurrentU???}とかにへんこうしても大丈夫か
+    auth: `/api/auth`,  // 認証サービス - v1/auth/loginへのアクセスは認証サービス側で処理
+    task: `/api/task/v1`,  // タスクサービス
+    time: `/api/time/v1`,  // 時間サービス
+    group: `/api/group/v1`, // グループサービス
+    report: `/api/report/v1` // レポートサービス
+
+frontendのdocker-compose.ymlで、下のネットワーク行追加しても大丈夫か
+    networks:
+      - task-management-network
+      - default
+
+networks:
+  task-management-network:
+    external: true
