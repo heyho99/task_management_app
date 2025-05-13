@@ -122,7 +122,7 @@ task_management_app/
 │       │   ├── css/
 │       │   │   └── style.css
 │       │   └── assets/     # 画像など
-│   │   ├── docker-compose.yml  
+│       ├── docker-compose.yml  
 │       ├── Dockerfile      # (Nginxなどで静的ファイルを配信する場合)
 │       ├── package.json    # (TypeScript/Framework導入時)
 │       └── tsconfig.json   # (TypeScript導入時)
