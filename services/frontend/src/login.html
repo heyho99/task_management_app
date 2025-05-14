@@ -4,9 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ログイン - タスク管理アプリ</title>
+    <!-- 外部のCSSファイルを読み込んでいます。
+     Bootstrap 5.0.2のCSSファイルで、CDN (Content Delivery Network) から提供されています。 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- プロジェクトのCSSファイルを読み込んでいます。 -->
     <link rel="stylesheet" href="css/style.css">
 </head>
+
+
+
 
 <body>
     <div id="login-screen">
@@ -36,8 +42,17 @@
         </div>
     </div>
 
+
+
+    <!-- 外部のJavaScriptファイルを読み込んでいます。
+    Bootstrap 5.0.2のJavaScriptファイルで、CDN (Content Delivery Network) から提供されています。 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- プロジェクトのJavaScriptファイルを読み込んでいます。 -->
     <script src="js/api.js"></script>
+
+
+
+    <!-- ログイン画面のJavaScriptコード -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const loginForm = document.getElementById('login-form');
@@ -47,7 +62,7 @@
             const debugPre = debugInfo.querySelector('pre');
             const registerBtn = document.getElementById('register-btn');
             
-            // デバッグ情報表示用ヘルパー関数
+            // デバッグ情報表示用ヘルパー関数(よく使う処理をまとめた関数)
             function showDebugInfo(title, data) {
                 debugInfo.style.display = 'block';
                 let content = title + ":\n";
