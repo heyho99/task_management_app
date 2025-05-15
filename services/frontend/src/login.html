@@ -52,9 +52,38 @@
 
 
 
-    <!-- ログイン画面のJavaScriptコード -->
+    <!-- 
+    全体の構造
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+        UIの要素を取得
+
+        // ユーザー登録ボタンのクリックイベント
+        registerBtn.addEventListener('click', async () => {
+            ユーザー登録APIのURLを作成し、POSTリクエストを送信
+            レスポンスデータをJSONとしてパースし、javascriptのオブジェクトとして取得
+        })
+
+        // ログインフォームのsubmitイベント
+        loginForm.addEventListener('submit', async (e) => {
+            ログインAPIのURLを作成し、POSTリクエストを送信
+            レスポンスデータをJSONとしてパースし、javascriptのオブジェクトとして取得
+            レスポンスデータにトークンがある場合、ローカルストレージにトークンを保存
+            index.htmlにリダイレクト
+        })
+
+    }
+
+
+    
+    
+    
+    -->
     <script>
+        // htmlの読み込み完了後、以下の処理を実行
         document.addEventListener('DOMContentLoaded', () => {
+            // ログインフォーム、エラーメッセージ、APIエンドポイント、デバッグ情報、ユーザー登録ボタンの要素を取得
             const loginForm = document.getElementById('login-form');
             const errorMessage = document.getElementById('error-message');
             const apiEndpointElem = document.getElementById('api-endpoint');
@@ -62,6 +91,7 @@
             const debugPre = debugInfo.querySelector('pre');
             const registerBtn = document.getElementById('register-btn');
             
+
             // デバッグ情報表示用ヘルパー関数(よく使う処理をまとめた関数)
             function showDebugInfo(title, data) {
                 debugInfo.style.display = 'block';
@@ -85,11 +115,13 @@
                 apiEndpointElem.textContent = '未定義';
             }
             
+
             // ユーザー登録ボタンのクリックイベント
             registerBtn.addEventListener('click', async () => {
                 const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
                 
+                // ユーザー名とパスワードが入力されていない場合、エラーメッセージを表示して処理を終了
                 if (!username || !password) {
                     errorMessage.textContent = 'ユーザー名とパスワードを入力してください';
                     errorMessage.style.display = 'block';
@@ -97,7 +129,10 @@
                 }
                 
                 try {
+                    // api.jsで定義されているAPI_ENDPOINTS.auth を使ってユーザー登録APIのURLを作成し、POSTリクエストを送信
                     const registerUrl = API_ENDPOINTS.auth + '/v1/auth/register';
+                    
+                    // fetch APIのfetch(url, JSON)でPOSTリクエストを送信
                     const response = await fetch(registerUrl, {
                         method: 'POST',
                         headers: {
@@ -109,8 +144,10 @@
                         })
                     });
                     
+                    // レスポンスデータをJSONとしてパースし、javascriptのオブジェクトとして取得
                     const responseData = await response.json();
                     
+                    // レスポンスが成功しなかった場合、エラーメッセージを表示して処理を終了
                     if (!response.ok) {
                         throw new Error(responseData.detail || '登録に失敗しました');
                     }
@@ -118,6 +155,7 @@
                     errorMessage.textContent = 'ユーザー登録が完了しました。ログインしてください。';
                     errorMessage.className = 'alert alert-success';
                     errorMessage.style.display = 'block';
+                
                 } catch (error) {
                     errorMessage.textContent = error.message || '登録に失敗しました';
                     errorMessage.className = 'alert alert-danger';
@@ -125,6 +163,8 @@
                 }
             });
             
+
+            // htmlでログインフォームをsubmitした時のイベント
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
@@ -135,17 +175,19 @@
                 debugInfo.style.display = 'none';
                 
                 try {
-                    // URLエンコードされたフォームデータを使用する場合
-                    const urlEncodedData = new URLSearchParams();
-                    urlEncodedData.append('username', username);
-                    urlEncodedData.append('password', password);
+                    // application/x-www-form-urlencodedというContent-Typeでデータを送信するため、
+                    // usernameとpasswordから、username=XXX&password=YYY　という形式の文字列を作成する
+                    const urlEncodedData = new URLSearchParams(); // POSTするデータを格納するオブジェクト作成
+                    urlEncodedData.append('username', username); // オブジェクトにusernameを追加
+                    urlEncodedData.append('password', password); // オブジェクトにpasswordを追加
                     
+                    // デバッグ用に送信データを表示
                     showDebugInfo("送信データ", {
                         username: username,
                         password: password
                     });
                     
-                    // 直接Fetchを使用してリクエスト
+                    // api.jsで定義されているAPI_ENDPOINTS.auth を使ってログインAPIのURLを作成し、POSTリクエストを送信
                     const authUrl = API_ENDPOINTS.auth + '/v1/auth/login';
                     console.log('認証URLにリクエスト送信:', authUrl);
                     
@@ -157,12 +199,14 @@
                         body: urlEncodedData
                     });
                     
+                    // ステータス（200, 401, 404, 500など）をデバッグ用に表示
                     console.log('レスポンスステータス:', response.status);
                     
-                    // レスポンスのテキストを取得
+                    // レスポンスのテキスト(ログイン認証の結果)を取得
                     const responseText = await response.text();
                     console.log('レスポンステキスト:', responseText);
                     
+                    // レスポンスのテキストをJSONとしてパースし、dataに格納
                     let data;
                     try {
                         // レスポンスがJSONの場合はパース
@@ -177,13 +221,14 @@
                         throw new Error('レスポンスの解析に失敗しました: ' + responseText);
                     }
                     
+                    // デバッグ用にレスポンスデータを表示
                     showDebugInfo("レスポンスデータ", data);
                     
                     if (!response.ok) {
                         throw new Error(data.detail || 'ログインに失敗しました');
                     }
-                    
-                    // トークンを保存
+
+                    // レスポンスデータにトークンがある場合、ローカルストレージにトークンを保存
                     if (data && data.access_token) {
                         localStorage.setItem('auth_token', data.access_token);
                         console.log('トークンが保存されました');
@@ -195,6 +240,7 @@
                         errorMessage.textContent = 'レスポンスにアクセストークンがありません。APIの応答形式を確認してください。';
                         errorMessage.style.display = 'block';
                     }
+
                 } catch (error) {
                     console.error('ログインエラー:', error);
                     
