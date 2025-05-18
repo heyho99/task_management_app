@@ -16,7 +16,7 @@ docker-compose -f services/auth-service/docker-compose.yml up -d
 docker-compose -f services/task-service/docker-compose.yml up -d
 docker-compose -f services/frontend/docker-compose.yml up -d
 
-http://localhost:8080/login.htmlからアクセス
+http://localhost:8080/login.html　からアクセス
 
 
 

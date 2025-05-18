@@ -63,18 +63,16 @@ function getAuthToken() {
  * @returns {Promise} レスポンスデータのPromise
  */
 async function apiCall(service, endpoint, method = 'GET', data = null, requiresAuth = true) {
-    //　指定したサービスのエンドポイントのベースURL('http://localhost:8002/api/v1'みたいな)をbaseUrlに格納
+    //　指定したサービスのエンドポイントURLをbaseUrlに格納
     const baseUrl = API_ENDPOINTS[service];
     if (!baseUrl) {
         throw new Error(`不明なサービス: ${service}`);
     }
 
     // エンドポイントが/で始まらない場合は追加する
-    //const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     
-    //const url = `${baseUrl}${normalizedEndpoint}`;
-    const url = `${baseUrl}${endpoint}`;
-
+    const url = `${baseUrl}${normalizedEndpoint}`;
     console.log(`API呼び出し: ${method} ${url}`, data);  // デバッグ用ログ追加
     
     const headers = {
@@ -86,29 +84,35 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
     if (requiresAuth) {
         const token = getAuthToken();
         if (!token) {
-            // 認証トークンがない場合はエラーを投げる
-            const error = new Error('認証トークンがありません。ログインしてください。');
-            error.statusCode = 401;
-            throw error;
+            // 一時的に認証なしでも続行できるようにする
+            console.warn('認証なしでAPIを呼び出します');
         } else {
             headers['Authorization'] = `Bearer ${token}`;
         }
     }
     
-    // CORS設定オブジェクトを定義
+    // CORS設定を環境に応じて調整
     let corsOptions = {
-        mode: 'cors',   // Fetch APIではクライアント側でmode: 'cors'を指定する必要がある
-        credentials: 'include'  // 異なるオリジンにも資格情報を含めて送信
+        mode: 'cors',
+        credentials: 'include'
     };
     
-    // オプションオブジェクトを作成（method, headers, corsOptions）
+    // Docker環境ではクレデンシャルの送信方法を変更
+    if (window.location.hostname === 'localhost' && 
+        (window.location.port === '8080' || window.location.port === '80')) {
+        corsOptions = {
+            mode: 'cors',
+            credentials: 'same-origin'
+        };
+    }
+    
     const options = {
         method,
         headers,
-        ...corsOptions 
+        ...corsOptions
     };
     
-    // データ(POSTするときのデータ)がある場合はJSONに変換してオプションオブジェクトに格納
+    // データがある場合はJSONに変換してリクエストボディに追加
     if (data) {
         options.body = JSON.stringify(data);
     }
@@ -164,7 +168,7 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
             
             // バックエンドサーバーのURLを出力
             console.error(`APIエンドポイント: ${url}`);
-            console.error('API_ENDPOINTS:', API_ENDPOINTS);
+            console.error('API_ENDPOINTS:', CURRENT_ENDPOINTS);
         }
         
         // 認証エラーの場合
@@ -203,7 +207,7 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
  * @returns {Promise} 認証結果のPromise
  */
 async function refreshToken() {
-    const response = await fetch(`${API_ENDPOINTS.auth}/auth/refresh`, {
+    const response = await fetch(`${CURRENT_ENDPOINTS.auth}/auth/refresh`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
