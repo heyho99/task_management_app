@@ -113,6 +113,7 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
         options.body = JSON.stringify(data);
     }
     
+    
     try {
         console.log(`Fetch実行: ${method} ${url}`, options);
         const response = await fetch(url, options);
