@@ -5,14 +5,19 @@
 /** 
  * 全体の構造
  * 
- * 1. API_ENDPOINTS - 各サービスのベースURLを定義
- * 2. API_ENDPOINTSをグローバル変数として公開
+ * API_ENDPOINTSとして各サービスのベースURLを定義
+ * API_ENDPOINTSをグローバル変数として公開
  * 
- * 4. 認証トークン取得用の関数
- *    getAuthToken() - ローカルストレージから認証トークンを取得
+ * getAuthToken() ローカルストレージから認証トークンを取得する関数
  * 
- * 5. API通信の共通関数
- *    apiCall(service, endpoint, method, data, requiresAuth) - 各APIへのリクエスト処理を共通化
+ * API通信の共通関数　apiCall()の定義
+ * - 対象サービスのエンドポイントのURLを作成
+ * - リクエストヘッダを作成（headers）
+ * - 認証が必要な時は、Bearer認証に使うAuthorizationヘッダを追加（headers['Authorization']）
+ * - CORS設定オブジェクトを作成（corsOptions）
+ * - オプションオブジェクトを作成（options['method', 'headers', 'corsOptions']）
+ * - POSTするときのデータがある時は、データをJSONに変換してオプションオブジェクトに格納
+ * 
  * 
  * 6. トークンリフレッシュ関数
  *    refreshToken() - 認証トークンの再取得処理
@@ -39,12 +44,12 @@ const API_ENDPOINTS = {
     report: 'http://localhost:8005/api/v1' // レポートサービス
 };
 
-// グローバルに公開
+// windowはブラウザのグローバルオブジェクトであり、ブラウザ上のどこからでもアクセスできるようにする
 window.API_ENDPOINTS = API_ENDPOINTS;
 
 
 /**
- * localStorageから認証トークンを取得
+ * localStorageから認証トークンを取得する関数
  * @returns {string} 認証トークン
  */
 function getAuthToken() {
@@ -69,20 +74,18 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
         throw new Error(`不明なサービス: ${service}`);
     }
 
-    // エンドポイントが/で始まらない場合は追加する
-    //const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    
-    //const url = `${baseUrl}${normalizedEndpoint}`;
+    // http://localhost:8002/api/v1/tasks/1 みたいなURLを生成
     const url = `${baseUrl}${endpoint}`;
 
     console.log(`API呼び出し: ${method} ${url}`, data);  // デバッグ用ログ追加
     
+    // クライアントからサーバーへのリクエストヘッダーを定義
     const headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Content-Type': 'application/json', // リクエストの形式がJSONであることを示す
+        'Accept': 'application/json' // レスポンスの形式としてJSONを期待していることを示す
     };
     
-    // 認証トークンが必要な場合は追加
+    // 認証トークンが必要な場合、リクエストヘッダに、Bearer認証に使うAuthorizationヘッダを追加
     if (requiresAuth) {
         const token = getAuthToken();
         if (!token) {
@@ -91,6 +94,7 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
             error.statusCode = 401;
             throw error;
         } else {
+            // Authorization: Bearer <token>という形
             headers['Authorization'] = `Bearer ${token}`;
         }
     }
@@ -119,10 +123,10 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
         const response = await fetch(url, options);
         console.log(`Fetchレスポンス: ${response.status} ${response.statusText}`);
         
-        // レスポンスをJSONとしてパース
         let responseData;
         const contentType = response.headers.get('content-type');
         
+        // レスポンスの形式がJSONである場合は、JSONとしてパース
         if (contentType && contentType.includes('application/json')) {
             try {
                 responseData = await response.json();
@@ -138,7 +142,7 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
             console.log('テキストレスポンス:', responseData);
         }
         
-        // エラーレスポンスの場合
+        // エラーレスポンスの場合、エラーメッセージを作成
         if (!response.ok) {
             const errorMsg = typeof responseData === 'object' ? 
                 responseData.detail || JSON.stringify(responseData) : 
