@@ -204,10 +204,11 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
 
 
 /**
- * リフレッシュトークンを使った再認証
+ * 期限切れになった認証トークンを、リフレッシュトークンなどを使って新しいトークンに更新する関数
  * @returns {Promise} 認証結果のPromise
  */
 async function refreshToken() {
+    // auth.jsの/v1/auth/refreshエンドポイントにPOSTリクエストを送信
     const response = await fetch(`${API_ENDPOINTS.auth}/auth/refresh`, {
         method: 'POST',
         headers: {
@@ -221,9 +222,11 @@ async function refreshToken() {
     }
     
     const data = await response.json();
+    // localStrageのauth_tokenを更新
     localStorage.setItem('auth_token', data.access_token);
     return data;
 }
+
 
 /**
  * エラーメッセージの表示
@@ -344,6 +347,8 @@ function displayError(error, elementId = 'error-message') {
         originalError: error
     };
 }
+
+
 
 // 認証系API
 const authApi = {
