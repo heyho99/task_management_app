@@ -211,7 +211,7 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
  * @returns {Promise} 認証結果のPromise
  */
 async function refreshToken() {
-    // auth.jsの/v1/auth/refreshエンドポイントにPOSTリクエストを送信
+    // auth-serviceの/v1/auth/refreshエンドポイントにPOSTリクエストを送信
     const response = await fetch(`${API_ENDPOINTS.auth}/auth/refresh`, {
         method: 'POST',
         headers: {
