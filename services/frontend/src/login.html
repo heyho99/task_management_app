@@ -35,9 +35,6 @@
             
             <div class="mt-3">
                 <p class="small text-muted">APIエンドポイント: <span id="api-endpoint">読み込み中...</span></p>
-                <div id="debug-info" class="small text-muted mt-2" style="display: none;">
-                    <pre class="border p-2 bg-light" style="max-height: 200px; overflow: auto;"></pre>
-                </div>
             </div>
         </div>
     </div>
@@ -79,30 +76,11 @@
     <script>
         // htmlの読み込み完了後、以下の処理を実行
         document.addEventListener('DOMContentLoaded', () => {
-            // ログインフォーム、エラーメッセージ、APIエンドポイント、デバッグ情報、ユーザー登録ボタンの要素を取得
+            // ログインフォーム、エラーメッセージ、APIエンドポイント、ユーザー登録ボタンの要素を取得
             const loginForm = document.getElementById('login-form');
             const errorMessage = document.getElementById('error-message');
             const apiEndpointElem = document.getElementById('api-endpoint');
-            const debugInfo = document.getElementById('debug-info');
-            const debugPre = debugInfo.querySelector('pre');
             const registerBtn = document.getElementById('register-btn');
-            
-
-            // デバッグ情報表示用ヘルパー関数(よく使う処理をまとめた関数)
-            function showDebugInfo(title, data) {
-                debugInfo.style.display = 'block';
-                let content = title + ":\n";
-                try {
-                    if (typeof data === 'object') {
-                        content += JSON.stringify(data, null, 2);
-                    } else {
-                        content += String(data);
-                    }
-                } catch (e) {
-                    content += "[表示できないデータ]";
-                }
-                debugPre.textContent = content;
-            }
             
             // APIエンドポイントの表示（デバッグ用）
             if (typeof API_ENDPOINTS !== 'undefined') {
@@ -111,7 +89,6 @@
                 apiEndpointElem.textContent = '未定義';
             }
             
-
             // ユーザー登録ボタンのクリックイベント
             registerBtn.addEventListener('click', async () => {
                 const username = document.getElementById('username').value;
@@ -127,6 +104,12 @@
                 try {
                     // api.jsで定義されているAPI_ENDPOINTS.auth を使ってユーザー登録APIのURLを作成し、POSTリクエストを送信
                     const registerUrl = API_ENDPOINTS.auth + '/v1/auth/register';
+                    const requestData = {
+                        username: username,
+                        password: password
+                    };
+                    
+                    console.log('ユーザー登録リクエスト:', registerUrl, requestData);
                     
                     // fetch APIのfetch(url, JSON)でPOSTリクエストを送信
                     const response = await fetch(registerUrl, {
@@ -134,14 +117,12 @@
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({
-                            username: username,
-                            password: password
-                        })
+                        body: JSON.stringify(requestData)
                     });
                     
                     // レスポンスデータをJSONとしてパースし、javascriptのオブジェクトとして取得
                     const responseData = await response.json();
+                    console.log('ユーザー登録レスポンス:', response.status, responseData);
                     
                     // レスポンスが成功しなかった場合、エラーメッセージを表示して処理を終了
                     if (!response.ok) {
@@ -153,6 +134,7 @@
                     errorMessage.style.display = 'block';
                 
                 } catch (error) {
+                    console.error('ユーザー登録エラー:', error);
                     errorMessage.textContent = error.message || '登録に失敗しました';
                     errorMessage.className = 'alert alert-danger';
                     errorMessage.style.display = 'block';
@@ -168,7 +150,6 @@
                 const password = document.getElementById('password').value;
                 errorMessage.style.display = 'none';
                 errorMessage.className = 'alert alert-danger';
-                debugInfo.style.display = 'none';
                 
                 try {
                     // application/x-www-form-urlencodedというContent-Typeでデータを送信するため、
@@ -177,15 +158,9 @@
                     urlEncodedData.append('username', username); // オブジェクトにusernameを追加
                     urlEncodedData.append('password', password); // オブジェクトにpasswordを追加
                     
-                    // デバッグ用に送信データを表示
-                    showDebugInfo("送信データ", {
-                        username: username,
-                        password: password
-                    });
-                    
                     // api.jsで定義されているAPI_ENDPOINTS.auth を使ってログインAPIのURLを作成し、POSTリクエストを送信
                     const authUrl = API_ENDPOINTS.auth + '/v1/auth/login';
-                    console.log('認証URLにリクエスト送信:', authUrl);
+                    console.log('ログインリクエスト:', authUrl, { username, password: '***' });
                     
                     const response = await fetch(authUrl, {
                         method: 'POST',
@@ -195,60 +170,30 @@
                         body: urlEncodedData
                     });
                     
-                    // ステータス（200, 401, 404, 500など）をデバッグ用に表示
-                    console.log('レスポンスステータス:', response.status);
-                    
                     // レスポンスのテキスト(ログイン認証の結果)を取得
                     const responseText = await response.text();
-                    console.log('レスポンステキスト:', responseText);
+                    console.log('ログインレスポンス:', response.status, responseText);
                     
                     // レスポンスのテキストをJSONとしてパースし、dataに格納
-                    let data;
-                    try {
-                        // レスポンスがJSONの場合はパース
-                        if (responseText.trim()) {
-                            data = JSON.parse(responseText);
-                        } else {
-                            data = { message: "空のレスポンス" };
-                        }
-                    } catch (parseError) {
-                        console.error('JSONパースエラー:', parseError);
-                        showDebugInfo("レスポンステキスト (JSONではない)", responseText);
-                        throw new Error('レスポンスの解析に失敗しました: ' + responseText);
-                    }
-                    
-                    // デバッグ用にレスポンスデータを表示
-                    showDebugInfo("レスポンスデータ", data);
+                    const data = responseText.trim() ? JSON.parse(responseText) : {};
                     
                     if (!response.ok) {
                         throw new Error(data.detail || 'ログインに失敗しました');
                     }
 
                     // レスポンスデータにトークンがある場合、ローカルストレージにトークンを保存
-                    if (data && data.access_token) {
+                    if (data.access_token) {
                         localStorage.setItem('auth_token', data.access_token);
                         console.log('トークンが保存されました');
                         // ログイン成功したら、メインページへリダイレクト
                         window.location.href = 'index.html';
                     } else {
-                        console.warn('レスポンスにトークンがありません:', data);
-                        showDebugInfo("トークンがありません", data);
-                        errorMessage.textContent = 'レスポンスにアクセストークンがありません。APIの応答形式を確認してください。';
-                        errorMessage.style.display = 'block';
+                        throw new Error('アクセストークンが見つかりません');
                     }
 
                 } catch (error) {
                     console.error('ログインエラー:', error);
-                    
-                    // ネットワークエラーの場合
-                    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-                        errorMessage.textContent = '認証サービスに接続できませんでした。サーバーが起動しているか確認してください。';
-                        console.error('サーバー接続エラー - URLを確認してください:', API_ENDPOINTS.auth);
-                    } else {
-                        // APIからのエラーメッセージ
-                        errorMessage.textContent = error.message || 'ログインに失敗しました。ユーザー名とパスワードを確認してください。';
-                    }
-                    
+                    errorMessage.textContent = error.message || 'ログインに失敗しました';
                     errorMessage.style.display = 'block';
                 }
             });
