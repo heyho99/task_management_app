@@ -3,34 +3,34 @@
  */
 
 /** 
- * 全体の構造
- * 
- * API_ENDPOINTSとして各サービスのベースURLを定義
- * API_ENDPOINTSをグローバル変数として公開
- * 
- * getAuthToken() ローカルストレージから認証トークンを取得する関数
- * 
- * API通信の共通関数　apiCall()の定義
- * - 対象サービスのエンドポイントのURLを作成
- * - リクエストヘッダを作成（headers）
- * - 認証が必要な時は、Bearer認証に使うAuthorizationヘッダを追加（headers['Authorization']）
- * - CORS設定オブジェクトを作成（corsOptions）
- * - オプションオブジェクトを作成（options['method', 'headers', 'corsOptions']）
- * - POSTするときのデータがある時は、データをJSONに変換してオプションオブジェクトに格納
- * 
- * 
- * 6. トークンリフレッシュ関数
- *    refreshToken() - 認証トークンの再取得処理
- * 
- * 7. エラー表示関数
- *    displayError(error, elementId) - APIエラーをUIに表示
- * 
- * 8. 各APIクライアント
- *    - authApi - 認証関連API（ログイン、ログアウト、ユーザー登録など）
- *    - taskApi - タスク関連API（一覧取得、作成、更新、削除など）
- *    - timeApi - 作業時間関連API
- * 
- * 9. グローバルオブジェクトとして公開（window.ApiClient）
+  全体の構造
+  
+  API_ENDPOINTSとして各サービスのベースURLを定義
+  API_ENDPOINTSをグローバル変数として公開
+  
+  getAuthToken():ローカルストレージから認証トークンを取得する関数
+  
+  apiCall():API通信の共通関数
+  - 対象サービスのエンドポイントのURLを作成
+  - リクエストヘッダを作成（headers）
+  - 認証が必要な時は、Bearer認証に使うAuthorizationヘッダを追加（headers['Authorization']）
+  - CORS設定オブジェクトを作成（corsOptions）
+  - オプションオブジェクトを作成（options['method', 'headers', 'corsOptions']）
+  - POSTするときのデータがある時は、データをJSONに変換してオプションオブジェクトに格納
+  - リクエストを送信してレスポンスを取得
+  
+  refreshToken():トークンリフレッシュ関数
+  - 認証トークンの再取得処理
+  
+  displayError():エラー表示関数
+  - APIエラーをUIに表示
+  
+  各APIクライアント
+  - authApi - 認証関連API（ログイン、ログアウト、ユーザー登録など）
+  - taskApi - タスク関連API（一覧取得、作成、更新、削除など）
+  - timeApi - 作業時間関連API
+  
+  グローバルオブジェクトとして公開（window.ApiClient）
  */
 
 
@@ -144,12 +144,15 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
         
         // エラーレスポンスの場合、エラーメッセージを作成
         if (!response.ok) {
+            // 三項演算子で、responseDataがオブジェクトの場合はresponseData.detailを、
+            // そうでない場合はresponseDataをエラーメッセージにする
             const errorMsg = typeof responseData === 'object' ? 
                 responseData.detail || JSON.stringify(responseData) : 
                 responseData || '不明なエラーが発生しました';
             
             console.error(`APIエラー [${response.status}]: ${errorMsg}`);
             
+            // エラーオブジェクトを作成
             const error = new Error(errorMsg);
             error.statusCode = response.status;
             error.responseData = responseData;
@@ -228,8 +231,9 @@ async function refreshToken() {
 }
 
 
+
 /**
- * エラーメッセージの表示
+ * エラーメッセージの表示関数
  * @param {Error|Object} error - エラーオブジェクトまたはカスタムエラー情報
  * @param {string} elementId - エラーメッセージを表示する要素のID
  */
@@ -350,7 +354,7 @@ function displayError(error, elementId = 'error-message') {
 
 
 
-// 認証系API
+// 認証系API　htmlからauthApi.login()みたいな感じで呼び出せるようにする
 const authApi = {
     login: (username, password) => 
         apiCall('auth', '/v1/auth/login', 'POST', { username, password }, false),
@@ -364,6 +368,7 @@ const authApi = {
     getUserProfile: () => 
         apiCall('auth', '/v1/users/me', 'GET')
 };
+
 
 // タスク系API
 const taskApi = {
@@ -379,7 +384,7 @@ const taskApi = {
     createTask: (taskData) => {
         console.log('フォームデータ:', taskData); // デバッグ用ログ
         
-        // タスク基本データを整形
+        // タスクデータのプロパティ名を変換し、APIに合わせる
         const apiTaskData = {
             task_name: taskData.title || taskData.task_name,
             task_content: taskData.description || taskData.task_content,
@@ -408,7 +413,7 @@ const taskApi = {
     updateTask: (taskId, taskData) => {
         console.log('タスク更新データ:', taskData); // デバッグ用ログ追加
         
-        // フィールド名を変換
+        // タスクデータのプロパティ名を変換し、APIに合わせる
         const apiTaskData = {
             task_name: taskData.title || taskData.task_name,
             task_content: taskData.description || taskData.task_content,
@@ -469,6 +474,7 @@ const taskApi = {
     }
 };
 
+
 // 時間系API（仮実装例）
 const timeApi = {
     getWorkTimes: (taskId) => 
@@ -478,7 +484,7 @@ const timeApi = {
         apiCall('time', '/work-times', 'POST', workTimeData)
 };
 
-// グローバルに公開
+// グローバルに公開（htmlファイルでwindow.ApiClient.auth.login()みたいな感じで呼び出せるようにする）
 window.ApiClient = {
     auth: authApi,
     task: taskApi,
