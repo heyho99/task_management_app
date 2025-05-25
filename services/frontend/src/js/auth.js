@@ -2,14 +2,21 @@
  * 認証関連の機能を提供するモジュール
  */
 
-// const 変数で値を再代入できない変数を宣言
+
+// Authオブジェクトを作成
+/**
+{
+    currentUser: null,
+    isLoggedIn():ログイン済みかどうかのチェック
+    login():ログイン処理
+    logout():ログアウト処理
+    getCurrentUser():現在のユーザー情報を取得
+    initialize():初期化処理
+}
+ */
 const Auth = {
-    /**
-     * 現在のユーザー情報
-     */
     currentUser: null,
     
-    // JSDocは下に続く関数の説明をする構造化されたコメント
     /**
      * ログイン済みかどうかのチェック
      * @returns {boolean} ログイン済みの場合はtrue
@@ -25,11 +32,10 @@ const Auth = {
      * @param {string} password - パスワード
      * @returns {Promise<Object>} ユーザー情報
      */
-    // asyncは非同期処理を行う関数(関数内でawaitを使用できる)を宣言するキーワード
     async login(username, password) {
         // try catchでエラーを処理
         try {
-            // FormDataを作成
+            // FormDataオブジェクト(username,password)を作成
             const formData = new FormData();
             formData.append('username', username);
             formData.append('password', password);
@@ -46,7 +52,7 @@ const Auth = {
                 throw new Error(errorData.detail || 'ログインに失敗しました');
             }
             
-            // dataにレスポンスをjson形式としてパースしてJavaScriptオブジェクトに変換
+            // data変数を用意し、レスポンス(アクセストークンが含まれる)をjson形式としてパースして格納
             const data = await response.json();
             // dataのaccess_tokenをAPIにセット API.setToken(アクセストークン)でアクセストークンをセット
             API.setToken(data.access_token);
@@ -69,6 +75,7 @@ const Auth = {
         window.location.reload();
     },
     
+
     /**
      * 現在のユーザー情報を取得
      * @returns {Promise<Object>} ユーザー情報

@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
+
 /**
  * アプリケーションの初期化
  */
