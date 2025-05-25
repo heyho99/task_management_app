@@ -123,7 +123,8 @@ const Time = {
             container.querySelectorAll('.view-task-btn').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const taskId = e.target.dataset.id;
-                    Tasks.showTaskDetail(taskId);
+                    // タスク詳細表示機能は現在 tasks.html で実装されています
+                    window.location.href = `tasks.html#task-${taskId}`;
                 });
             });
             
@@ -205,7 +206,7 @@ const Time = {
     async showWorkTimeEditForm(timeId = null) {
         try {
             // タスク一覧を取得
-            const tasks = await Tasks.getTasks();
+            const tasks = await window.ApiClient.task.getTasks();
             
             const modalContent = document.getElementById('modal-content');
             let workTime = null;
@@ -229,8 +230,8 @@ const Time = {
                         <select id="task_id" name="task_id" required>
                             <option value="">選択してください</option>
                             ${tasks.map(task => `
-                                <option value="${task.id}" ${workTime && workTime.task_id === task.id ? 'selected' : ''}>
-                                    ${task.title}
+                                <option value="${task.task_id}" ${workTime && workTime.task_id === task.task_id ? 'selected' : ''}>
+                                    ${task.task_name}
                                 </option>
                             `).join('')}
                         </select>

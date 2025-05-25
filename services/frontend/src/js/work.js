@@ -144,7 +144,7 @@ const Work = {
     async showWorkEditForm(workId = null) {
         try {
             // タスク一覧を取得
-            const tasks = await Tasks.getTasks();
+            const tasks = await window.ApiClient.task.getTasks();
             
             const modalContent = document.getElementById('modal-content');
             let work = null;
@@ -168,8 +168,8 @@ const Work = {
                         <select id="task_id" name="task_id" required>
                             <option value="">選択してください</option>
                             ${tasks.map(task => `
-                                <option value="${task.id}" ${work && work.task_id === task.id ? 'selected' : ''}>
-                                    ${task.title}
+                                <option value="${task.task_id}" ${work && work.task_id === task.task_id ? 'selected' : ''}>
+                                    ${task.task_name}
                                 </option>
                             `).join('')}
                         </select>

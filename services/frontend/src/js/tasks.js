@@ -1,234 +1,29 @@
 /**
  * タスク管理関連の機能を提供するモジュール
  */
-const Tasks = {
-    /**
-     * タスク一覧を取得
-     * @returns {Promise<Array>} タスク一覧
-     */
-    async getTasks() {
-        try {
-            return await API.get('/v1/tasks/');
-        } catch (error) {
-            console.error('タスク一覧取得エラー:', error);
-            throw error;
-        }
-    },
-    
-    /**
-     * タスク詳細を取得
-     * @param {number} taskId - タスクID
-     * @returns {Promise<Object>} タスク詳細
-     */
-    async getTask(taskId) {
-        try {
-            return await API.get(`/v1/tasks/${taskId}`);
-        } catch (error) {
-            console.error('タスク詳細取得エラー:', error);
-            throw error;
-        }
-    },
-    
-    /**
-     * タスクを作成
-     * @param {Object} taskData - タスクデータ
-     * @returns {Promise<Object>} 作成されたタスク
-     */
-    async createTask(taskData) {
-        try {
-            return await API.post('/v1/tasks/', taskData);
-        } catch (error) {
-            console.error('タスク作成エラー:', error);
-            throw error;
-        }
-    },
-    
-    /**
-     * タスクを更新
-     * @param {number} taskId - タスクID
-     * @param {Object} taskData - 更新データ
-     * @returns {Promise<Object>} 更新されたタスク
-     */
-    async updateTask(taskId, taskData) {
-        try {
-            return await API.put(`/v1/tasks/${taskId}`, taskData);
-        } catch (error) {
-            console.error('タスク更新エラー:', error);
-            throw error;
-        }
-    },
-    
-    /**
-     * タスクを削除
-     * @param {number} taskId - タスクID
-     * @returns {Promise<void>}
-     */
-    async deleteTask(taskId) {
-        try {
-            return await API.delete(`/v1/tasks/${taskId}`);
-        } catch (error) {
-            console.error('タスク削除エラー:', error);
-            throw error;
-        }
-    },
-    
-    /**
-     * タスク一覧を表示
-     * @param {HTMLElement} container - 表示先の要素
-     */
-    async renderTaskList(container) {
-        try {
-            container.innerHTML = '<div class="loading">読み込み中...</div>';
-            
-            const tasks = await this.getTasks();
-            
-            if (tasks.length === 0) {
-                container.innerHTML = '<div class="empty-state">タスクがありません。新しいタスクを作成してください。</div>';
-                return;
-            }
-            
-            const taskListHtml = tasks.map(task => `
-                <div class="list-item" data-id="${task.id}">
-                    <div class="item-header">
-                        <div class="item-title">${task.title}</div>
-                        <div class="item-actions">
-                            <button class="btn btn-small view-task-btn" data-id="${task.id}">詳細</button>
-                            <button class="btn btn-small edit-task-btn" data-id="${task.id}">編集</button>
-                            <button class="btn btn-small delete-task-btn" data-id="${task.id}">削除</button>
-                        </div>
-                    </div>
-                    <div class="item-progress">
-                        <div class="progress-bar">
-                            <div class="progress" style="width: ${task.progress || 0}%"></div>
-                        </div>
-                        <div class="progress-text">${task.progress || 0}%</div>
-                    </div>
-                    <div class="item-dates">
-                        <span>開始: ${new Date(task.start_date).toLocaleDateString()}</span>
-                        <span>期限: ${new Date(task.due_date).toLocaleDateString()}</span>
-                    </div>
-                </div>
-            `).join('');
-            
-            container.innerHTML = taskListHtml;
-            
-            // イベントリスナーを設定
-            this.setupTaskListEventListeners(container);
-            
-        } catch (error) {
-            container.innerHTML = '<div class="error-state">タスクの読み込みに失敗しました。</div>';
-            console.error('タスク一覧表示エラー:', error);
-        }
-    },
-    
-    /**
-     * タスク一覧のイベントリスナー設定
-     * @param {HTMLElement} container - タスク一覧コンテナ
-     */
-    setupTaskListEventListeners(container) {
-        // 詳細ボタン
-        container.querySelectorAll('.view-task-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const taskId = e.target.dataset.id;
-                this.showTaskDetail(taskId);
-            });
-        });
-        
-        // 編集ボタン
-        container.querySelectorAll('.edit-task-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const taskId = e.target.dataset.id;
-                window.location.href = `task-edit.html?id=${taskId}`;
-            });
-        });
-        
-        // 削除ボタン
-        container.querySelectorAll('.delete-task-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const taskId = e.target.dataset.id;
-                this.confirmDeleteTask(taskId);
-            });
-        });
-    },
-    
-    /**
-     * タスク詳細を表示
-     * @param {number} taskId - タスクID
-     */
-    async showTaskDetail(taskId) {
-        try {
-            const task = await this.getTask(taskId);
-            
-            const modalContent = document.getElementById('modal-content');
-            modalContent.innerHTML = `
-                <h2>${task.title}</h2>
-                <div class="task-detail">
-                    <div class="task-progress">
-                        <div class="progress-bar">
-                            <div class="progress" style="width: ${task.progress || 0}%"></div>
-                        </div>
-                        <div class="progress-text">${task.progress || 0}%</div>
-                    </div>
-                    <div class="task-dates">
-                        <p><strong>開始日:</strong> ${new Date(task.start_date).toLocaleDateString()}</p>
-                        <p><strong>期限日:</strong> ${new Date(task.due_date).toLocaleDateString()}</p>
-                    </div>
-                    <div class="task-description">
-                        <h3>説明</h3>
-                        <p>${task.description || '説明はありません'}</p>
-                    </div>
-                </div>
-            `;
-            
-            // モーダルを表示
-            document.getElementById('modal').classList.remove('hidden');
-            
-        } catch (error) {
-            console.error('タスク詳細表示エラー:', error);
-        }
-    },
-    
-    /**
-     * タスク削除確認
-     * @param {number} taskId - タスクID
-     */
-    confirmDeleteTask(taskId) {
-        const modalContent = document.getElementById('modal-content');
-        modalContent.innerHTML = `
-            <h2>タスク削除確認</h2>
-            <p>このタスクを削除してもよろしいですか？</p>
-            <div class="modal-actions">
-                <button id="confirm-delete-btn" class="btn">削除する</button>
-                <button id="cancel-delete-btn" class="btn btn-secondary">キャンセル</button>
-            </div>
-        `;
-        
-        // モーダルを表示
-        document.getElementById('modal').classList.remove('hidden');
-        
-        // 削除確認ボタン
-        document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
-            try {
-                await this.deleteTask(taskId);
-                
-                // モーダルを閉じる
-                document.getElementById('modal').classList.add('hidden');
-                
-                // タスク一覧を更新
-                this.renderTaskList(document.getElementById('task-list'));
-                
-            } catch (error) {
-                console.error('タスク削除エラー:', error);
-                alert('タスクの削除に失敗しました。');
-            }
-        });
-        
-        // キャンセルボタン
-        document.getElementById('cancel-delete-btn').addEventListener('click', () => {
-            document.getElementById('modal').classList.add('hidden');
-        });
-    }
-};
+
+
+/**
+全体の構成
+
+Tasksオブジェクトの定義
+calculateInitialValues(formData):初期値計算関数
+initTaskCreationPage():タスク作成ページの初期化関数
+initTaskEditPage():タスク編集ページの初期化関数
+loadTaskForEdit(taskId):タスク編集ページの読み込み関数
+addSubtaskField(subtaskData):サブタスク追加関数
+redistributeSubtaskContributions():サブタスクの貢献度再分配関数
+removeSubtask(button):サブタスク削除関数
+updateInitialValues():初期値更新関数
+ページ初期化処理の追加
+グローバルに公開する
+*/
+
+
+// Tasksオブジェクトは削除されました。
+// 現在はapi.jsのApiClientを使用してタスク操作を行います。
+
+
 
 /**
  * 初期値計算処理
@@ -249,6 +44,8 @@ async function calculateInitialValues(formData) {
         throw error;
     }
 }
+
+
 
 /**
  * タスク作成ページの初期化
@@ -289,6 +86,8 @@ function initTaskCreationPage() {
         form.addEventListener('submit', handleTaskSubmit);
     }
 }
+
+
 
 /**
  * タスク編集ページの初期化
@@ -501,6 +300,8 @@ function initTaskEditPage() {
     }
 }
 
+
+
 /**
  * 編集用にタスク情報を読み込んで表示する
  * @param {string} taskId - 編集対象のタスクID
@@ -555,6 +356,8 @@ async function loadTaskForEdit(taskId) {
         window.location.href = 'tasks.html';
     }
 }
+
+
 
 /**
  * サブタスクフィールドを追加
@@ -637,6 +440,8 @@ function addSubtaskField(subtaskData = null) {
     }
 }
 
+
+
 /**
  * サブタスクの貢献値を均等に再配分
  */
@@ -661,6 +466,8 @@ function redistributeSubtaskContributions() {
     validateSubtaskContributions();
 }
 
+
+
 /**
  * サブタスクを削除
  * @param {HTMLElement} button - 削除ボタン要素
@@ -678,6 +485,8 @@ function removeSubtask(button) {
     // 削除後に残ったサブタスクの作業貢献値を再調整
     redistributeSubtaskContributions();
 }
+
+
 
 /**
  * 初期値の更新
@@ -708,6 +517,8 @@ async function updateInitialValues() {
         console.error('初期値計算エラー:', error);
     }
 }
+
+
 
 /**
  * 日次作業計画値の更新
@@ -783,6 +594,8 @@ function updateDailyTimePlans(dailyTimePlans) {
     });
 }
 
+
+
 /**
  * サブタスク貢献値の更新
  */
@@ -820,6 +633,8 @@ function validateDailyTaskPlans() {
     return isValid;
 }
 
+
+
 /**
  * 日次作業時間計画値のバリデーション
  */
@@ -844,6 +659,8 @@ function validateDailyTimePlans() {
     
     return isValid;
 }
+
+
 
 /**
  * サブタスク貢献値のバリデーション
@@ -890,6 +707,8 @@ function validateSubtaskContributions() {
     
     return isValid;
 }
+
+
 
 /**
  * フォーム送信処理
@@ -942,6 +761,8 @@ async function handleTaskSubmit(event) {
         ApiClient.displayError(error);
     }
 }
+
+
 
 /**
  * サブタスク情報の収集
@@ -996,6 +817,8 @@ function collectSubtasks() {
     return result;
 }
 
+
+
 /**
  * 日次作業計画値の収集
  * @returns {Array} - 日次作業計画値の配列
@@ -1011,6 +834,8 @@ function collectDailyTaskPlans() {
         };
     });
 }
+
+
 
 /**
  * 日次作業時間計画値の収集
@@ -1137,6 +962,8 @@ function redistributeContributionValues(changedInput = null) {
     validateSubtaskContributions();
 }
 
+
+
 // ページ初期化処理の追加
 document.addEventListener('DOMContentLoaded', function() {
     // 現在のページのパスを取得
@@ -1148,13 +975,12 @@ document.addEventListener('DOMContentLoaded', function() {
     } else if (currentPage === 'task-edit.html') {
         initTaskEditPage();
     } else if (currentPage === 'tasks.html') {
-        // タスク一覧ページの初期化
-        const taskListContainer = document.querySelector('.task-list');
-        if (taskListContainer) {
-            Tasks.renderTaskList(taskListContainer);
-        }
+        // タスク一覧ページの初期化は tasks.html 内で直接 ApiClient を使用して行われます
+        console.log('タスク一覧ページが読み込まれました');
     }
 });
+
+
 
 // グローバルに公開する関数
 window.addSubtaskField = addSubtaskField;
