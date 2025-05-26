@@ -4,25 +4,101 @@
 
 
 /**
-全体の構成
+グローバルに公開されている関数（5個）
+1. addSubtaskField
+    呼び出し元:
+        task-create.html（onclick属性）
+        task-edit.html（onclick属性）
+        initTaskCreationPage()内
+        initTaskEditPage()内
+    入力: subtaskData = null (オプション、既存サブタスクデータ)
+    出力: なし（DOM操作でサブタスクフィールドを追加）
+2. removeSubtask
+    呼び出し元: 動的に生成されるサブタスクの削除ボタン（onclick属性）
+    入力: button (HTMLElement - 削除ボタン要素)
+    出力: なし（DOM操作でサブタスクを削除）
+3. redistributeContributionValues
+    呼び出し元: 動的に生成されるサブタスクの貢献値入力フィールド（onchange属性）
+    入力: changedInput = null (HTMLElement - 変更された入力要素)
+    出力: なし（DOM操作で貢献値を再分配）
+4. redistributeSubtaskContributions
+    呼び出し元: 現在は直接的な呼び出しが見つからない（予備的な公開）
+    入力: なし
+    出力: なし（DOM操作で貢献値を均等分配）
+5. validateSubtaskContributions
+    呼び出し元: 現在は直接的な呼び出しが見つからない（予備的な公開）
+    入力: なし
+    出力: boolean (バリデーション結果)
 
-Tasksオブジェクトの定義
-calculateInitialValues(formData):初期値計算関数
-initTaskCreationPage():タスク作成ページの初期化関数
-initTaskEditPage():タスク編集ページの初期化関数
-loadTaskForEdit(taskId):タスク編集ページの読み込み関数
-addSubtaskField(subtaskData):サブタスク追加関数
-redistributeSubtaskContributions():サブタスクの貢献度再分配関数
-removeSubtask(button):サブタスク削除関数
-updateInitialValues():初期値更新関数
-ページ初期化処理の追加
-グローバルに公開する
+
+
+非公開（内部）関数（16個）
+
+1. calculateInitialValues
+    呼び出し元: updateInitialValues()内
+    入力: formData (Object - フォームデータ)
+    出力: Promise (計算結果)
+2. initTaskCreationPage
+    呼び出し元: DOMContentLoadedイベントリスナー内
+    入力: なし
+    出力: なし（ページ初期化）
+3. initTaskEditPage
+    呼び出し元: DOMContentLoadedイベントリスナー内
+    入力: なし
+    出力: なし（ページ初期化）
+4. loadTaskForEdit
+    呼び出し元: initTaskEditPage()内
+    入力: taskId (string - タスクID)
+    出力: Promise (非同期処理)
+5. updateInitialValues
+    呼び出し元: 日付・時間入力フィールドのchangeイベント
+    入力: なし（DOM要素から値を取得）
+    出力: Promise (非同期処理)
+6. updateDailyTaskPlans
+    呼び出し元: updateInitialValues()内
+    入力: dailyTaskPlans (Array - 日次作業計画値)
+    出力: なし（DOM更新）
+7. updateDailyTimePlans
+    呼び出し元: updateInitialValues()内
+    入力: dailyTimePlans (Array - 日次作業時間計画値)
+    出力: なし（DOM更新）
+8. updateSubtaskContributions
+    呼び出し元: updateInitialValues()内
+    入力: contributionValue (number - 貢献値)
+    出力: なし（DOM更新）
+9. validateDailyTaskPlans
+    呼び出し元: フォーム送信時、計画値変更時
+    入力: なし（DOM要素から値を取得）
+    出力: boolean (バリデーション結果)
+10. validateDailyTimePlans
+    呼び出し元: フォーム送信時、計画値変更時
+    入力: なし（DOM要素から値を取得）
+    出力: boolean (バリデーション結果)
+11. handleTaskSubmit
+    呼び出し元: タスク作成フォームのsubmitイベント
+    入力: event (Event - フォーム送信イベント)
+    出力: Promise (非同期処理)
+12. collectSubtasks
+    呼び出し元: handleTaskSubmit()内、タスク編集フォーム送信時
+    入力: なし（DOM要素から値を取得）
+    出力: Array (サブタスク情報配列)
+13. collectDailyTaskPlans
+    呼び出し元: handleTaskSubmit()内、タスク編集フォーム送信時
+    入力: なし（DOM要素から値を取得）
+    出力: Array (日次作業計画値配列)
+14. collectDailyTimePlans
+    呼び出し元: handleTaskSubmit()内、タスク編集フォーム送信時
+    入力: なし（DOM要素から値を取得）
+    出力: Array (日次作業時間計画値配列)
+15. 無名関数（DOMContentLoadedイベントリスナー）
+    呼び出し元: ページ読み込み完了時
+    入力: なし
+    出力: なし（ページ初期化の振り分け）
+16. 無名関数（タスク編集フォーム送信）
+    呼び出し元: タスク編集フォームのsubmitイベント
+    入力: event (Event - フォーム送信イベント)
+    出力: Promise (非同期処理)
 */
-
-
-// Tasksオブジェクトは削除されました。
-// 現在はapi.jsのApiClientを使用してタスク操作を行います。
-
 
 
 /**
