@@ -21,11 +21,8 @@
     呼び出し元: 動的に生成されるサブタスクの貢献値入力フィールド（onchange属性）
     入力: changedInput = null (HTMLElement - 変更された入力要素)
     出力: なし（DOM操作で貢献値を再分配）
-4. redistributeSubtaskContributions
-    呼び出し元: 現在は直接的な呼び出しが見つからない（予備的な公開）
-    入力: なし
-    出力: なし（DOM操作で貢献値を均等分配）
-5. validateSubtaskContributions
+
+4. validateSubtaskContributions
     呼び出し元: 現在は直接的な呼び出しが見つからない（予備的な公開）
     入力: なし
     出力: boolean (バリデーション結果)
@@ -40,11 +37,9 @@
     出力: Promise (計算結果)
 2. initTaskCreationPage
     呼び出し元: DOMContentLoadedイベントリスナー内
-    入力: なし
     出力: なし（ページ初期化）
 3. initTaskEditPage
     呼び出し元: DOMContentLoadedイベントリスナー内
-    入力: なし
     出力: なし（ページ初期化）
 4. loadTaskForEdit
     呼び出し元: initTaskEditPage()内
@@ -92,7 +87,6 @@
     出力: Array (日次作業時間計画値配列)
 15. 無名関数（DOMContentLoadedイベントリスナー）
     呼び出し元: ページ読み込み完了時
-    入力: なし
     出力: なし（ページ初期化の振り分け）
 16. 無名関数（タスク編集フォーム送信）
     呼び出し元: タスク編集フォームのsubmitイベント
@@ -519,32 +513,6 @@ function addSubtaskField(subtaskData = null) {
 
 
 /**
- * サブタスクの貢献値を均等に再配分
- */
-function redistributeSubtaskContributions() {
-    console.log('貢献値を均等に再配分します');
-    const container = document.getElementById('subtasks-container');
-    const subtasks = container.getElementsByClassName('subtask-row');
-    const count = subtasks.length;
-    
-    if (count === 0) return;
-    
-    // 均等な貢献値を計算
-    const equalContribution = (100 / count).toFixed(2);
-    console.log(`均等分配値: ${equalContribution}% (${count}個のサブタスク)`);
-    
-    // すべてのサブタスクに均等な値を設定
-    Array.from(subtasks).forEach(subtask => {
-        const input = subtask.querySelector('.subtask-contrib');
-        input.value = equalContribution;
-    });
-    
-    validateSubtaskContributions();
-}
-
-
-
-/**
  * サブタスクを削除
  * @param {HTMLElement} button - 削除ボタン要素
  */
@@ -559,7 +527,7 @@ function removeSubtask(button) {
     row.remove();
     
     // 削除後に残ったサブタスクの作業貢献値を再調整
-    redistributeSubtaskContributions();
+    redistributeContributionValues(null);
 }
 
 
@@ -1062,5 +1030,4 @@ document.addEventListener('DOMContentLoaded', function() {
 window.addSubtaskField = addSubtaskField;
 window.removeSubtask = removeSubtask;
 window.redistributeContributionValues = redistributeContributionValues;
-window.redistributeSubtaskContributions = redistributeSubtaskContributions;
 window.validateSubtaskContributions = validateSubtaskContributions; 
