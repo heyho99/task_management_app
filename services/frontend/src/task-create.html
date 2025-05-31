@@ -36,11 +36,26 @@
         </div>
     </header>
 
+    <!-- 
+    基本情報フォーム（タスク名、カテゴリー、タスク内容、直近の予定、開始予定日、完了予定日、目標作業時間、コメント）
+    サブタスクフォーム（サブタスク名、サブタスク内容、サブタスク貢献値）
+    日次作業計画値フォーム
+    日次作業時間計画値フォーム
+    -->
     <main class="container py-4">
         <h1 class="mb-4">タスク作成</h1>
         
         <div class="alert alert-danger" id="error-message" style="display: none;"></div>
         
+        <!--
+        <form>
+            <input> テキストボックス
+            <select> セレクトボックス
+            <textarea> テキストエリア
+            <button type="submit"> 送信ボタン
+        </form>
+        →送信ボタンを押して、フォームの内容を送信する
+        -->
         <form id="task-create-form" class="needs-validation" novalidate>
             <div class="card mb-4">
                 <div class="card-header">基本情報</div>

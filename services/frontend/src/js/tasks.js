@@ -23,9 +23,13 @@
     出力: なし（DOM操作で貢献値を再分配）
 
 4. validateSubtaskContributions
-    呼び出し元: 現在は直接的な呼び出しが見つからない（予備的な公開）
-    入力: なし
-    出力: boolean (バリデーション結果)
+    呼び出し元: 
+      - `initTaskEditPage()`内のフォーム送信処理（タスク編集時のバリデーション）
+      - `addSubtaskField()`関数内（サブタスク追加後のバリデーション）
+      - `redistributeContributionValues()`関数内（貢献値再分配後のバリデーション）
+      - `handleTaskSubmit()`関数内（タスク作成時のバリデーション）
+    入力: なし（DOM要素から値を取得）
+    出力: `boolean` (バリデーション結果、100%に近い値かをチェック)
 
 
 
@@ -51,11 +55,11 @@
     出力: Promise (非同期処理)
 6. updateDailyTaskPlans
     呼び出し元: updateInitialValues()内
-    入力: dailyTaskPlans (Array - 日次作業計画値)
+    入力: dailyTaskPlans (Array - 日次作業計画値値)
     出力: なし（DOM更新）
 7. updateDailyTimePlans
     呼び出し元: updateInitialValues()内
-    入力: dailyTimePlans (Array - 日次作業時間計画値)
+    入力: dailyTimePlans (Array - 日次作業時間計画値値)
     出力: なし（DOM更新）
 8. updateSubtaskContributions
     呼び出し元: updateInitialValues()内
@@ -96,17 +100,18 @@
 
 
 /**
- * 初期値計算処理
+ * formDataを受け取り、初期値を計算するAPIを呼び出し、計算結果を返す
  * @param {Object} formData - 入力データ
  * @returns {Promise} - 計算結果Promise
  */
 async function calculateInitialValues(formData) {
     try {
+        // 日次作業計画値や日次作業時間計画値やサブタスク貢献値を計算するAPIを呼ぶ、api.jsの関数を呼び、計算結果を返す
         const result = await ApiClient.task.calculateInitialValues({
-            start_date: formData.start_date,
-            due_date: formData.due_date,
-            target_time: parseInt(formData.target_time),
-            subtask_count: formData.subtasks.length || 1
+            start_date: formData.start_date, // 開始日
+            due_date: formData.due_date, // 終了日
+            target_time: parseInt(formData.target_time), // 目標時間→日次作業時間計画値？
+            subtask_count: formData.subtasks.length || 1 // サブタスク数→サブタスク貢献値？
         });
         return result;
     } catch (error) {
@@ -118,40 +123,44 @@ async function calculateInitialValues(formData) {
 
 
 /**
- * タスク作成ページの初期化
+ タスク作成ページ(task-create.html)の初期化
+ * サブタスク追加ボタンにイベントリスナーを追加する
+ * 開始日、終了日、目標時間フォームのそれぞれに、値の変更があった時にupdateInitialValues関数を呼び出すイベントリスナーを追加
+ * 1個目のサブタスクフィールドを追加
+ * タスク作成フォームの送信ボタン<button type="submit">を押したら、handleTaskSubmit関数を呼び出す
  */
 function initTaskCreationPage() {
     console.log('initTaskCreationPage関数が呼び出されました');
-    const form = document.getElementById('task-create-form');
-    const addSubtaskBtn = document.getElementById('add-subtask');
-    const subtaskContainer = document.getElementById('subtasks-container');
-    const startDateInput = document.getElementById('start-date');
-    const dueDateInput = document.getElementById('due-date');
-    const targetTimeInput = document.getElementById('target-time');
+    const form = document.getElementById('task-create-form'); // タスク作成フォーム全体
+    const addSubtaskBtn = document.getElementById('add-subtask'); // サブタスク追加ボタン
+    const startDateInput = document.getElementById('start-date'); // 開始日
+    const dueDateInput = document.getElementById('due-date'); // 終了日
+    const targetTimeInput = document.getElementById('target-time'); // 目標時間入力フォーム
 
     console.log('addSubtaskBtn要素:', addSubtaskBtn);
 
-    // サブタスク追加ボタンのイベントリスナー
+    // サブタスク追加ボタンに、イベントリスナーを追加
     if (addSubtaskBtn) {
-        console.log('サブタスク追加ボタンにイベントリスナーを追加します');
-        // インラインのonclick属性を使用する代わりに、ここでイベントリスナーを追加
         addSubtaskBtn.onclick = function() {
             console.log('サブタスク追加ボタンがクリックされました');
-            window.addSubtaskField(); // グローバル関数として呼び出し
+            // サブタスクフィールドを追加
+            addSubtaskField();
         };
     }
 
-    // 日付またはターゲット時間が変更されたら初期値を再計算
+    // 開始日、終了日、目標時間が全てhtml要素として存在する場合、
+    // 開始日、終了日、目標時間フォームのそれぞれに、値の変更があった時にupdateInitialValues関数を呼び出すイベントリスナーを追加
     if (startDateInput && dueDateInput && targetTimeInput) {
         [startDateInput, dueDateInput, targetTimeInput].forEach(input => {
             input.addEventListener('change', updateInitialValues);
         });
     }
 
-    // 初期サブタスク追加
+    // 1個目のサブタスク追加
     addSubtaskField();
 
-    // フォーム送信イベントリスナー
+    // フォーム送信イベントリスナーを追加
+    // タスク作成フォームの送信ボタン<button type="submit">を押したら、handleTaskSubmit関数を呼び出すように設定
     if (form) {
         form.addEventListener('submit', handleTaskSubmit);
     }
@@ -160,20 +169,19 @@ function initTaskCreationPage() {
 
 
 /**
- * タスク編集ページの初期化
+ * タスク編集ページ(task-edit.html)の初期化
  */
 function initTaskEditPage() {
     console.log('initTaskEditPage関数が呼び出されました');
     const form = document.getElementById('task-edit-form');
     const addSubtaskBtn = document.getElementById('add-subtask');
-    const subtaskContainer = document.getElementById('subtasks-container');
     const startDateInput = document.getElementById('start-date');
     const dueDateInput = document.getElementById('due-date');
     const targetTimeInput = document.getElementById('target-time');
 
     console.log('addSubtaskBtn要素:', addSubtaskBtn);
 
-    // URLパラメータからタスクIDを取得
+    // ページのURLのクエリ文字列（例: ?id=123 の ?id=123 の部分）を取得
     const urlParams = new URLSearchParams(window.location.search);
     const taskId = urlParams.get('id');
     
@@ -183,35 +191,42 @@ function initTaskEditPage() {
         return;
     }
 
-    // タスク情報を読み込んで表示
+
+    // タスクIDに基づいてタスク情報を読み込んで表示
     loadTaskForEdit(taskId);
 
-    // サブタスク追加ボタンのイベントリスナー
+
+    // サブタスク追加ボタンのイベントリスナーを設定
     if (addSubtaskBtn) {
         console.log('サブタスク追加ボタンにイベントリスナーを追加します');
         addSubtaskBtn.onclick = function() {
             console.log('サブタスク追加ボタンがクリックされました');
-            window.addSubtaskField(); // グローバル関数として呼び出し
+            // サブタスクフィールドを追加
+            addSubtaskField(); 
         };
     }
 
-    // 日付またはターゲット時間が変更されたら初期値を再計算
+    // 開始日、終了日、目標時間フォームのそれぞれに、値の変更があった時にupdateInitialValues関数を呼び出すイベントリスナーを追加
     if (startDateInput && dueDateInput && targetTimeInput) {
         [startDateInput, dueDateInput, targetTimeInput].forEach(input => {
             input.addEventListener('change', updateInitialValues);
         });
     }
 
-    // フォーム送信イベントリスナー
+
+    // タスク編集フォームの送信ボタン<button type="submit">を押したら、下記関数を呼び出すように設定
     if (form) {
         form.addEventListener('submit', async (event) => {
+            // フォームのデフォルトの送信動作（ページのリロードなど）をキャンセル
+            // これにより、JavaScriptで非同期にデータを処理できるようになる
             event.preventDefault();
             
             // バリデーション
-            const isTaskPlansValid = validateDailyTaskPlans();
-            const isTimePlansValid = validateDailyTimePlans();
-            const isSubtasksValid = validateSubtaskContributions();
+            const isTaskPlansValid = validateDailyTaskPlans(); // 日次作業計画値のバリデーション
+            const isTimePlansValid = validateDailyTimePlans(); // 日次作業時間計画値のバリデーション
+            const isSubtasksValid = validateSubtaskContributions(); // サブタスク貢献値のバリデーション
             
+            // 全てのバリデーションをチェックし、falseの場合はreturn（送信処理を中断してページ遷移もしない）
             if (!isTaskPlansValid || !isTimePlansValid || !isSubtasksValid) {
                 return;
             }
