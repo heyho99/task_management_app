@@ -17,10 +17,10 @@
     呼び出し元: 動的に生成されるサブタスクの削除ボタン（onclick属性）
     入力: button (HTMLElement - 削除ボタン要素)
     出力: なし（DOM操作でサブタスクを削除）
-3. redistributeContributionValues
-    呼び出し元: 動的に生成されるサブタスクの貢献値入力フィールド（onchange属性）
-    入力: changedInput = null (HTMLElement - 変更された入力要素)
-    出力: なし（DOM操作で貢献値を再分配）
+3. redistributeSubtaskContributions
+    呼び出し元: 貢献値自動計算ボタン（click属性）
+    入力: なし
+    出力: なし（DOM操作で貢献値を均等分配）
 
 4. validateSubtaskContributions
     呼び出し元: 
@@ -157,6 +157,15 @@ function initTaskCreationPage() {
         });
     }
 
+    // 貢献値自動計算ボタンにイベントリスナーを追加
+    const redistributeButton = document.getElementById('redistribute-contributions');
+    if (redistributeButton) {
+        redistributeButton.addEventListener('click', function() {
+            console.log('貢献値自動計算ボタンがクリックされました');
+            redistributeSubtaskContributions();
+        });
+    }
+
     // 1個目のサブタスク追加
     addSubtaskField();
 
@@ -221,6 +230,15 @@ function initTaskEditPage() {
         calculateButton.addEventListener('click', function() {
             console.log('計画値自動計算ボタンがクリックされました');
             updateInitialValues();
+        });
+    }
+
+    // 貢献値自動計算ボタンにイベントリスナーを追加
+    const redistributeButton = document.getElementById('redistribute-contributions');
+    if (redistributeButton) {
+        redistributeButton.addEventListener('click', function() {
+            console.log('貢献値自動計算ボタンがクリックされました');
+            redistributeSubtaskContributions();
         });
     }
 
@@ -477,8 +495,6 @@ function addSubtaskField(subtaskData = null) {
         const contributionValue = subtaskData.contribution_value;
         console.log('既存のサブタスクデータを使用:', subtaskData);
         
-        // onchange="window.redistributeContributionValues(this)":
-        //  →貢献値の入力フィールドの値が変更されたときに、redistributeContributionValues関数を呼び出すよう設定
         const subtaskHtml = `
             <div class="row g-3 subtask-row mb-3" data-index="${index}">
                 <div class="col-md-6">
@@ -491,7 +507,7 @@ function addSubtaskField(subtaskData = null) {
                     <input type="number" class="form-control subtask-contrib" id="subtask-contrib-${index}" 
                            min="1" max="100" value="${contributionValue.toFixed(2)}" 
                            data-subtask-id="${subtaskData.subtask_id}"
-                           step="0.01" onchange="window.redistributeContributionValues(this)" required>
+                           step="0.01" required>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="button" class="btn btn-outline-danger w-100" onclick="window.removeSubtask(this)">削除</button>
@@ -520,7 +536,7 @@ function addSubtaskField(subtaskData = null) {
                     <input type="number" class="form-control subtask-contrib" id="subtask-contrib-${index}" 
                            min="1" max="100" value="0" 
                            data-subtask-id="null"
-                           step="0.01" onchange="window.redistributeContributionValues(this)" required>
+                           step="0.01" required>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="button" class="btn btn-outline-danger w-100" onclick="window.removeSubtask(this)">削除</button>
@@ -530,19 +546,6 @@ function addSubtaskField(subtaskData = null) {
         
         container.insertAdjacentHTML('beforeend', subtaskHtml);
         console.log('新規サブタスクHTMLを追加しました');
-        
-        // すべてのサブタスクに均等に貢献値を再配分
-        const totalCount = container.getElementsByClassName('subtask-row').length;
-        const equalContribution = (100 / totalCount).toFixed(2);
-        console.log(`新規サブタスク追加後の均等分配値: ${equalContribution}% (${totalCount}個のサブタスク)`);
-        
-        // 貢献値を設定
-        Array.from(container.getElementsByClassName('subtask-row')).forEach(subtask => {
-            const input = subtask.querySelector('.subtask-contrib');
-            input.value = equalContribution;
-        });
-        
-        validateSubtaskContributions();
     }
 }
 
@@ -556,12 +559,8 @@ function removeSubtask(button) {
     // 削除ボタンの親要素のフィールド(サブタスク要素)を取得
     const row = button.closest('.subtask-row'); // closest:最も近い親要素
     
-    
-    // UIから削除（API削除はフォーム送信時に行う）
+    // 選択した要素を削除
     row.remove();
-    
-    // 削除後に残ったサブタスクの作業貢献値を再調整
-    redistributeContributionValues(null);
 }
 
 
@@ -932,111 +931,31 @@ function collectDailyTimePlans() {
 }
 
 /**
- * サブタスクの貢献値を再分配
- * @param {HTMLElement} changedInput - 変更された入力要素（省略可）
+ * サブタスクの貢献値を均等に再分配
  */
-function redistributeContributionValues(changedInput = null) {
+function redistributeSubtaskContributions() {
+    console.log('redistributeSubtaskContributions関数が呼び出されました');
     const container = document.getElementById('subtasks-container');
     const subtasks = container.querySelectorAll('.subtask-row');
     const count = subtasks.length;
     
-    if (count === 0) return;
-    
-    // 変更された入力があれば、その値を優先
-    if (changedInput) {
-        let value = parseFloat(changedInput.value) || 0;
-        const maxValue = 100;
-        
-        // 最大値を超えないように制限
-        if (value > maxValue) {
-            value = maxValue;
-            changedInput.value = maxValue;
-        }
-        
-        // 負の値を入力できないように制限
-        if (value < 0) {
-            value = 0;
-            changedInput.value = 0;
-        }
+    if (count === 0) {
+        console.log('サブタスクが存在しないため処理を終了します');
+        return;
     }
     
-    // 現在の合計値を計算
-    let total = 0;
-    let changedValue = 0;
-    const inputs = [];
+    // 100%を均等分配
+    const equalContribution = (100 / count).toFixed(2);
+    console.log(`${count}個のサブタスクに均等分配: ${equalContribution}%`);
     
-    subtasks.forEach(subtask => {
+    // 全てのサブタスクに均等な貢献値を設定
+    subtasks.forEach((subtask, index) => {
         const input = subtask.querySelector('.subtask-contrib');
-        const value = parseFloat(input.value) || 0;
-        inputs.push(input);
-        
-        if (input === changedInput) {
-            changedValue = value;
-        } else {
-            total += value;
-        }
+        input.value = equalContribution;
+        console.log(`サブタスク${index + 1}の貢献値を${equalContribution}%に設定`);
     });
     
-    // 変更された入力も含めた合計
-    const currentTotal = total + changedValue;
-    
-    // 合計が100を超える場合、他の入力を調整
-    if (currentTotal > 100 && changedInput) {
-        // 調整が必要な差分
-        const diff = currentTotal - 100;
-        const remainingInputs = inputs.filter(input => input !== changedInput);
-        const remainingTotal = total;
-        
-        if (remainingInputs.length > 0 && remainingTotal > 0) {
-            // 差分を他のサブタスクに比例配分で振り分ける
-            remainingInputs.forEach(input => {
-                const currentValue = parseFloat(input.value) || 0;
-                const ratio = currentValue / remainingTotal;
-                const adjustment = diff * ratio;
-                const newValue = Math.max(0, currentValue - adjustment);
-                input.value = newValue.toFixed(2);
-            });
-        } else if (remainingInputs.length > 0) {
-            // 残りがすべて0の場合は、変更された入力を100にして他は0に
-            changedInput.value = 100;
-            remainingInputs.forEach(input => {
-                input.value = 0;
-            });
-        }
-    }
-    
-    // 合計が100未満の場合、残りを比例配分
-    else if (currentTotal < 100) {
-        const remaining = 100 - currentTotal;
-        
-        // 他の値の合計
-        if (total > 0) {
-            // 比例配分
-            subtasks.forEach(subtask => {
-                const input = subtask.querySelector('.subtask-contrib');
-                if (input !== changedInput) {
-                    const currentValue = parseFloat(input.value) || 0;
-                    const ratio = currentValue / total;
-                    const addition = remaining * ratio;
-                    const newValue = currentValue + addition;
-                    input.value = newValue.toFixed(2);
-                }
-            });
-        } else {
-            // すべて0の場合は均等に分配
-            const remainingInputs = inputs.filter(input => input !== changedInput);
-            if (remainingInputs.length > 0) {
-                const equalShare = remaining / remainingInputs.length;
-                remainingInputs.forEach(input => {
-                    input.value = equalShare.toFixed(2);
-                });
-            } else if (changedInput) {
-                // 入力が1つだけなら100%
-                changedInput.value = 100;
-            }
-        }
-    }
-    
+    // バリデーションを実行
     validateSubtaskContributions();
 }
 
@@ -1063,5 +982,5 @@ document.addEventListener('DOMContentLoaded', function() {
 // グローバルに公開する関数
 window.addSubtaskField = addSubtaskField;
 window.removeSubtask = removeSubtask;
-window.redistributeContributionValues = redistributeContributionValues;
+window.redistributeSubtaskContributions = redistributeSubtaskContributions;
 window.validateSubtaskContributions = validateSubtaskContributions; 

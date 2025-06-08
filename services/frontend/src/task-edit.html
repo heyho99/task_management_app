@@ -123,9 +123,12 @@
                     <div id="subtasks-container">
                         <!-- サブタスクがここに追加される -->
                     </div>
-                    <button type="button" class="btn btn-primary mt-3" id="add-subtask" onclick="window.addSubtaskField()">サブタスク追加</button>
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="button" class="btn btn-primary" id="add-subtask" onclick="window.addSubtaskField()">サブタスク追加</button>
+                        <button type="button" class="btn btn-secondary" id="redistribute-contributions">貢献値自動計算</button>
+                    </div>
                     <div class="form-text">
-                        各サブタスクの作業貢献値の合計は100になるように設定してください。
+                        各サブタスクの作業貢献値の合計は100になるように設定してください。「貢献値自動計算」ボタンで均等分配できます。
                     </div>
                 </div>
             </div>
