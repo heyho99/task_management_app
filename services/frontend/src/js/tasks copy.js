@@ -148,12 +148,11 @@ function initTaskCreationPage() {
         };
     }
 
-    // 計画値自動計算ボタンにイベントリスナーを追加
-    const calculateButton = document.getElementById('calculate-initial-values');
-    if (calculateButton) {
-        calculateButton.addEventListener('click', function() {
-            console.log('計画値自動計算ボタンがクリックされました');
-            updateInitialValues();
+    // 開始日、終了日、目標時間が全てhtml要素として存在する場合、
+    // 開始日、終了日、目標時間フォームのそれぞれに、値の変更があった時にupdateInitialValues関数を呼び出すイベントリスナーを追加
+    if (startDateInput && dueDateInput && targetTimeInput) {
+        [startDateInput, dueDateInput, targetTimeInput].forEach(input => {
+            input.addEventListener('change', updateInitialValues);
         });
     }
 
@@ -215,12 +214,10 @@ function initTaskEditPage() {
         };
     }
 
-    // 計画値自動計算ボタンにイベントリスナーを追加
-    const calculateButton = document.getElementById('calculate-initial-values');
-    if (calculateButton) {
-        calculateButton.addEventListener('click', function() {
-            console.log('計画値自動計算ボタンがクリックされました');
-            updateInitialValues();
+    // 開始日、終了日、目標時間フォームのそれぞれに、値の変更があった時にupdateInitialValues関数を呼び出すイベントリスナーを追加
+    if (startDateInput && dueDateInput && targetTimeInput) {
+        [startDateInput, dueDateInput, targetTimeInput].forEach(input => {
+            input.addEventListener('change', updateInitialValues);
         });
     }
 
@@ -553,9 +550,11 @@ function addSubtaskField(subtaskData = null) {
  * @param {HTMLElement} button - 削除ボタン要素
  */
 function removeSubtask(button) {
-    // 削除ボタンの親要素のフィールド(サブタスク要素)を取得
-    const row = button.closest('.subtask-row'); // closest:最も近い親要素
+    const row = button.closest('.subtask-row');
     
+    // 削除確認
+    const confirmation = confirm('このサブタスクを削除してもよろしいですか？');
+    if (!confirmation) return;
     
     // UIから削除（API削除はフォーム送信時に行う）
     row.remove();
