@@ -100,59 +100,24 @@
 
 
 /**
- * フロントエンドで日次計画値を計算する
- * @returns {Object} - 計算結果 {daily_task_plans: Array, daily_time_plans: Array}
+ * formDataを受け取り、初期値を計算するAPIを呼び出し、計算結果を返す
+ * @param {Object} formData - 入力データ
+ * @returns {Promise} - 計算結果Promise
  */
-function calculateDailyPlans() {
-    const startDate = document.getElementById('start-date').value;
-    const dueDate = document.getElementById('due-date').value;
-    const targetTime = parseInt(document.getElementById('target-time').value);
-    
-    if (!startDate || !dueDate || !targetTime) {
-        return null;
-    }
-    
-    // 開始日から終了日までの日数を計算（両端を含む）
-    const start = new Date(startDate);
-    const due = new Date(dueDate);
-    const timeDiff = due.getTime() - start.getTime();
-    const dayCount = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
-    
-    if (dayCount <= 0) {
-        alert('終了日は開始日より後に設定してください');
-        return null;
-    }
-    
-    // 日次作業計画値（100%を日数で均等分配）
-    const dailyTaskPlanValue = (100 / dayCount);
-    
-    // 日次作業時間計画値（目標時間を日数で均等分配）
-    const dailyTimePlanValue = (targetTime / dayCount);
-    
-    // 日付ごとの配列を生成
-    const daily_task_plans = [];
-    const daily_time_plans = [];
-    
-    for (let i = 0; i < dayCount; i++) {
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + i);
-        const dateStr = currentDate.toISOString().split('T')[0];
-        
-        daily_task_plans.push({
-            date: dateStr,
-            task_plan_value: dailyTaskPlanValue
+async function calculateInitialValues(formData) {
+    try {
+        // 日次作業計画値や日次作業時間計画値やサブタスク貢献値を計算するAPIを呼ぶ、api.jsの関数を呼び、計算結果を返す
+        const result = await ApiClient.task.calculateInitialValues({
+            start_date: formData.start_date, // 開始日
+            due_date: formData.due_date, // 終了日
+            target_time: parseInt(formData.target_time), // 目標時間→日次作業時間計画値？
+            subtask_count: formData.subtasks.length || 1 // サブタスク数→サブタスク貢献値？
         });
-        
-        daily_time_plans.push({
-            date: dateStr,
-            time_plan_value: dailyTimePlanValue
-        });
+        return result;
+    } catch (error) {
+        ApiClient.displayError(error);
+        throw error;
     }
-    
-    return {
-        daily_task_plans,
-        daily_time_plans
-    };
 }
 
 
@@ -160,7 +125,7 @@ function calculateDailyPlans() {
 /**
  タスク作成ページ(task-create.html)の初期化（静的なHTMLに動的な機能を追加する）
  * サブタスク追加ボタンにイベントリスナーを追加する
- * 開始日、終了日、目標時間フォームのそれぞれに、値の変更があった時にupdatePlansAndContributions関数を呼び出すイベントリスナーを追加
+ * 開始日、終了日、目標時間フォームのそれぞれに、値の変更があった時にupdateInitialValues関数を呼び出すイベントリスナーを追加
  * 1個目のサブタスクフィールドを追加
  * タスク作成フォームの送信ボタン<button type="submit">を押したら、handleTaskSubmit関数を呼び出す
  */
@@ -188,7 +153,7 @@ function initTaskCreationPage() {
     if (calculateButton) {
         calculateButton.addEventListener('click', function() {
             console.log('計画値自動計算ボタンがクリックされました');
-            updatePlansAndContributions();
+            updateInitialValues();
         });
     }
 
@@ -215,7 +180,7 @@ function initTaskCreationPage() {
 /**
  タスク編集ページ(task-edit.html)の初期化（静的なHTMLに動的な機能を追加する）
  * サブタスク追加ボタンにイベントリスナーを追加する
- * 開始日、終了日、目標時間フォームのそれぞれに、値の変更があった時にupdatePlansAndContributions関数を呼び出すイベントリスナーを追加
+ * 開始日、終了日、目標時間フォームのそれぞれに、値の変更があった時にupdateInitialValues関数を呼び出すイベントリスナーを追加
  * 1個目のサブタスクフィールドを追加
  * タスク編集フォームの送信ボタン<button type="submit">を押したら、以下の関数を呼び出す
     * バリデーション
@@ -264,7 +229,7 @@ function initTaskEditPage() {
     if (calculateButton) {
         calculateButton.addEventListener('click', function() {
             console.log('計画値自動計算ボタンがクリックされました');
-            updatePlansAndContributions();
+            updateInitialValues();
         });
     }
 
@@ -501,8 +466,8 @@ async function loadTaskForEdit(taskId) {
             addSubtaskField();
         }
         
-        // 日次計画値を更新
-        updatePlansAndContributions();
+        // 
+        await updateInitialValues();
         
     } catch (error) {
         console.error('タスク読み込みエラー:', error);
@@ -601,27 +566,33 @@ function removeSubtask(button) {
 
 
 /**
- * 計画値の計算と表示更新
+ * 初期値の更新
  */
-function updatePlansAndContributions() {
-    console.log('計画値の計算と表示更新を開始します');
+async function updateInitialValues() {
+    const startDate = document.getElementById('start-date').value;
+    const dueDate = document.getElementById('due-date').value;
+    const targetTime = document.getElementById('target-time').value;
+    const subtasksCount = document.getElementById('subtasks-container').getElementsByClassName('subtask-row').length || 1;
     
-    // フロントエンドで日次計画値を計算
-    const data = calculateDailyPlans();
+    if (!startDate || !dueDate || !targetTime) return;
     
-    if (!data) {
-        console.log('計算に必要な値が不足しています');
-        return;
+    try {
+        const data = await calculateInitialValues({
+            start_date: startDate,
+            due_date: dueDate,
+            target_time: parseInt(targetTime),
+            subtasks: Array(subtasksCount).fill({}) // ダミーのサブタスク配列
+        });
+        
+        // 計算結果を表示
+        updateDailyTaskPlans(data.daily_task_plans);
+        updateDailyTimePlans(data.daily_time_plans);
+        
+        // サブタスク貢献値の更新
+        updateSubtaskContributions(data.subtask_contribution_value);
+    } catch (error) {
+        console.error('初期値計算エラー:', error);
     }
-    
-    // 計算結果を表示
-    updateDailyTaskPlans(data.daily_task_plans);
-    updateDailyTimePlans(data.daily_time_plans);
-    
-    // サブタスク貢献値を均等分配
-    redistributeSubtaskContributions();
-    
-    console.log('計画値の計算と表示更新が完了しました');
 }
 
 
@@ -702,7 +673,18 @@ function updateDailyTimePlans(dailyTimePlans) {
 
 
 
-
+/**
+ * サブタスク貢献値の更新
+ */
+function updateSubtaskContributions(contributionValue) {
+    const container = document.getElementById('subtasks-container');
+    const subtasks = container.getElementsByClassName('subtask-row');
+    
+    Array.from(subtasks).forEach(subtask => {
+        const input = subtask.querySelector('.subtask-contrib');
+        input.value = contributionValue.toFixed(2);
+    });
+}
 
 /**
  * 日次作業計画値のバリデーション
