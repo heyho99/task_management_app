@@ -347,7 +347,7 @@ function initTaskEditPage() {
                     console.error('タスク本体更新に失敗:', taskUpdateError);
                     throw new Error(`タスク本体の更新に失敗しました: ${taskUpdateError.message}`);
                 }
-                
+
                 // 2. サブタスクの作成・更新・削除を処理
                 const subtaskPromises = [];
                 const subtaskErrors = [];
@@ -501,8 +501,12 @@ async function loadTaskForEdit(taskId) {
             addSubtaskField();
         }
         
-        // 日次計画値を更新
-        updatePlansAndContributions();
+        // 日次計画値を更新（サブタスクの再分配は行わない）
+        const data = calculateDailyPlans();
+        if (data) {
+            updateDailyTaskPlans(data.daily_task_plans);
+            updateDailyTimePlans(data.daily_time_plans);
+        }
         
     } catch (error) {
         console.error('タスク読み込みエラー:', error);

@@ -36,9 +36,6 @@ def create_subtask(db: Session, subtask: schemas.SubtaskCreate, task_id: int, us
     db.commit()
     db.refresh(db_subtask)
     
-    # サブタスク作成後のバリデーションはフロントエンドで実行済みのため削除
-    # validate_subtasks_contribution(db, task_id)
-    
     return db_subtask
 
 
@@ -61,9 +58,6 @@ def update_subtask(db: Session, subtask_id: int, subtask: schemas.SubtaskUpdate,
     db.commit()
     db.refresh(db_subtask)
     
-    # サブタスク更新後のバリデーションはフロントエンドで実行済みのため削除
-    # validate_subtasks_contribution(db, db_subtask.task_id)
-    
     return db_subtask
 
 
@@ -83,27 +77,4 @@ def delete_subtask(db: Session, subtask_id: int, user_id: int) -> Dict[str, Any]
     db.delete(db_subtask)
     db.commit()
     
-    # サブタスク削除後のバリデーションはフロントエンドで実行済みのため削除
-    # remaining_subtasks = db.query(Subtask).filter(Subtask.task_id == task_id).all()
-    # if remaining_subtasks:
-    #     validate_subtasks_contribution(db, task_id)
-    
-    return {"subtask_id": subtask_id, "deleted": True}
-
-
-def validate_subtasks_contribution(db: Session, task_id: int) -> None:
-    """指定されたタスクの全サブタスクの貢献値合計が100かチェックする
-    
-    注意：この関数は現在使用されていません。
-    バリデーションはフロントエンドで実行済みの状態でAPIが呼び出されるため、
-    バックエンドでの重複したチェックは不要です。
-    この関数は将来的な拡張や特殊なケースのために保持されています。
-    """
-    subtasks = db.query(Subtask).filter(Subtask.task_id == task_id).all()
-    
-    total_contribution = sum(subtask.contribution_value for subtask in subtasks)
-    if total_contribution != 100:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"サブタスクの作業貢献値の合計が100ではありません (現在: {total_contribution})"
-        ) 
+    return {"subtask_id": subtask_id, "deleted": True} 
