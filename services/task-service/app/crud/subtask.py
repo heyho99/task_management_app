@@ -29,16 +29,15 @@ def create_subtask(db: Session, subtask: schemas.SubtaskCreate, task_id: int, us
     db_subtask = Subtask(
         task_id=task_id,
         subtask_name=subtask.subtask_name,
-        contribution_value=subtask.contribution_value,
-        completion_rate=0  # 初期値は0
+        contribution_value=subtask.contribution_value
     )
     
     db.add(db_subtask)
     db.commit()
     db.refresh(db_subtask)
     
-    # サブタスク作成後に全サブタスクの貢献値合計が100になっているか確認
-    validate_subtasks_contribution(db, task_id)
+    # サブタスク作成後のバリデーションはフロントエンドで実行済みのため削除
+    # validate_subtasks_contribution(db, task_id)
     
     return db_subtask
 
@@ -62,8 +61,8 @@ def update_subtask(db: Session, subtask_id: int, subtask: schemas.SubtaskUpdate,
     db.commit()
     db.refresh(db_subtask)
     
-    # サブタスク更新後に全サブタスクの貢献値合計が100になっているか確認
-    validate_subtasks_contribution(db, db_subtask.task_id)
+    # サブタスク更新後のバリデーションはフロントエンドで実行済みのため削除
+    # validate_subtasks_contribution(db, db_subtask.task_id)
     
     return db_subtask
 
@@ -84,17 +83,22 @@ def delete_subtask(db: Session, subtask_id: int, user_id: int) -> Dict[str, Any]
     db.delete(db_subtask)
     db.commit()
     
-    # サブタスク削除後に残りのサブタスクの貢献値合計が100になっているか確認
-    # 残りのサブタスクがある場合のみ
-    remaining_subtasks = db.query(Subtask).filter(Subtask.task_id == task_id).all()
-    if remaining_subtasks:
-        validate_subtasks_contribution(db, task_id)
+    # サブタスク削除後のバリデーションはフロントエンドで実行済みのため削除
+    # remaining_subtasks = db.query(Subtask).filter(Subtask.task_id == task_id).all()
+    # if remaining_subtasks:
+    #     validate_subtasks_contribution(db, task_id)
     
     return {"subtask_id": subtask_id, "deleted": True}
 
 
 def validate_subtasks_contribution(db: Session, task_id: int) -> None:
-    """指定されたタスクの全サブタスクの貢献値合計が100かチェックする"""
+    """指定されたタスクの全サブタスクの貢献値合計が100かチェックする
+    
+    注意：この関数は現在使用されていません。
+    バリデーションはフロントエンドで実行済みの状態でAPIが呼び出されるため、
+    バックエンドでの重複したチェックは不要です。
+    この関数は将来的な拡張や特殊なケースのために保持されています。
+    """
     subtasks = db.query(Subtask).filter(Subtask.task_id == task_id).all()
     
     total_contribution = sum(subtask.contribution_value for subtask in subtasks)

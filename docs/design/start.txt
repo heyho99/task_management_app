@@ -28,18 +28,3 @@ http://localhost:8080/login.html　からアクセス
 →次になぜlocalhostで動いているのか確認
 →会社PCでもアクセスできるような設定にする
 
-frontendのapi.jsについて、下のとか{CurrentU???}とかにへんこうしても大丈夫か
-    auth: `/api/auth`,  // 認証サービス - v1/auth/loginへのアクセスは認証サービス側で処理
-    task: `/api/task/v1`,  // タスクサービス
-    time: `/api/time/v1`,  // 時間サービス
-    group: `/api/group/v1`, // グループサービス
-    report: `/api/report/v1` // レポートサービス
-
-frontendのdocker-compose.ymlで、下のネットワーク行追加しても大丈夫か
-    networks:
-      - task-management-network
-      - default
-
-networks:
-  task-management-network:
-    external: true

@@ -237,12 +237,6 @@ function initTaskEditPage() {
     // ページのURL(https://example.com/edit_task.html?id=123&mode=edit)のクエリ文字列を取得
     const urlParams = new URLSearchParams(window.location.search); // クエリ文字　?id=123&mode=edit
     const taskId = urlParams.get('id'); //123
-    
-    if (!taskId) {
-        alert('タスクIDが指定されていません。タスク一覧に戻ります。');
-        window.location.href = 'tasks.html';
-        return;
-    }
 
 
     // タスクIDに基づいてタスク情報を読み込んで、html要素に表示
@@ -318,7 +312,13 @@ function initTaskEditPage() {
                 console.log('現在のサブタスク:', currentSubtasks);
                 
 
-                // 編集ボタンを押した時に、フォームデータの収集（サブタスクを除く）
+
+                // サブタスクの更新がうまくいっていない！！！！！！！！！！！
+                // ・サブタスク名は更新されるが、貢献値は更新されない
+                // ・サブタスクの追加すると、なぜか追加分が重複して２つずつ追加されてしまう
+                // ・サブタスクの追加に失敗して過剰に多いサブタスクで、作業貢献値が自動で割り振られてしまう
+
+                // 更新ボタンを押した時に、フォームデータの収集（サブタスクを除く）
                 const formData = {
                     task_name: document.getElementById('task-name').value, // タスク名
                     task_content: document.getElementById('task-content').value, // タスク内容
@@ -506,8 +506,7 @@ async function loadTaskForEdit(taskId) {
         
     } catch (error) {
         console.error('タスク読み込みエラー:', error);
-        alert('タスクの読み込みに失敗しました。タスク一覧に戻ります。');
-        window.location.href = 'tasks.html';
+        alert('タスクの読み込みに失敗しました。');
     }
 }
 
@@ -779,27 +778,7 @@ function validateSubtaskContributions() {
         errorElement.style.display = isValid ? 'none' : 'block';
     }
     
-    // 合計が100でない場合、自動的に調整を試みる
-    if (!isValid && subtasks.length > 0) {
-        // 均等な貢献値を計算
-        const equalContribution = (100 / subtasks.length).toFixed(2);
-        console.log(`貢献値を自動調整します: ${equalContribution}% (${subtasks.length}個のサブタスク)`);
-        
-        // すべてのサブタスクに均等な値を設定
-        Array.from(subtasks).forEach(subtask => {
-            const input = subtask.querySelector('.subtask-contrib');
-            input.value = equalContribution;
-        });
-        
-        // エラー表示を更新
-        if (errorElement) {
-            errorElement.textContent = '';
-            errorElement.style.display = 'none';
-        }
-        
-        return true;
-    }
-    
+    // バリデーション結果のみを返す（自動調整は行わない）
     return isValid;
 }
 
