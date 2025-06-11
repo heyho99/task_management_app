@@ -101,6 +101,8 @@ class TaskUpdate(TaskBase):
     category: Optional[str] = None
     target_time: Optional[int] = None
     comment: Optional[str] = None
+    daily_task_plans: Optional[List[DailyTaskPlanCreate]] = None
+    daily_time_plans: Optional[List[DailyTimePlanCreate]] = None
 
 
 class Task(TaskBase):

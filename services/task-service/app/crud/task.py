@@ -115,14 +115,46 @@ def update_task(db: Session, task_id: int, task: schemas.TaskUpdate, user_id: in
     if db_task.user_id != user_id:
         raise HTTPException(status_code=403, detail="このタスクを更新する権限がありません")
 
-    # 更新するフィールドを設定
-    update_data = task.dict(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_task, key, value)
+    try:
+        # 更新するフィールドを設定（日次計画値は除く）
+        update_data = task.dict(exclude_unset=True, exclude={'daily_task_plans', 'daily_time_plans'})
+        for key, value in update_data.items():
+            setattr(db_task, key, value)
 
-    db.commit()
-    db.refresh(db_task)
-    return db_task
+        # 日次作業計画値の更新
+        if task.daily_task_plans is not None:
+            # 既存の日次作業計画を削除
+            db.query(DailyTaskPlan).filter(DailyTaskPlan.task_id == task_id).delete()
+            
+            # 新しい日次作業計画を作成
+            for plan_data in task.daily_task_plans:
+                db_plan = DailyTaskPlan(
+                    task_id=task_id,
+                    date=plan_data.date,
+                    task_plan_value=plan_data.task_plan_value
+                )
+                db.add(db_plan)
+
+        # 日次作業時間計画値の更新
+        if task.daily_time_plans is not None:
+            # 既存の日次時間計画を削除
+            db.query(DailyTimePlan).filter(DailyTimePlan.task_id == task_id).delete()
+            
+            # 新しい日次時間計画を作成
+            for time_plan_data in task.daily_time_plans:
+                db_time_plan = DailyTimePlan(
+                    task_id=task_id,
+                    date=time_plan_data.date,
+                    time_plan_value=time_plan_data.time_plan_value
+                )
+                db.add(db_time_plan)
+
+        db.commit()
+        db.refresh(db_task)
+        return db_task
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"タスク更新中にエラーが発生しました: {str(e)}")
 
 
 def delete_task(db: Session, task_id: int, user_id: int) -> Dict[str, Any]:

@@ -314,9 +314,7 @@ function initTaskEditPage() {
 
 
                 // サブタスクの更新がうまくいっていない！！！！！！！！！！！
-                // ・サブタスク名は更新されるが、貢献値は更新されない
-                // ・サブタスクの追加すると、なぜか追加分が重複して２つずつ追加されてしまう
-                // ・サブタスクの追加に失敗して過剰に多いサブタスクで、作業貢献値が自動で割り振られてしまう
+                // ・
 
                 // 更新ボタンを押した時に、フォームデータの収集（サブタスクを除く）
                 const formData = {
@@ -336,7 +334,7 @@ function initTaskEditPage() {
                     daily_time_plans: collectDailyTimePlans()
                 };
                 
-                console.log('更新するタスクデータ:', formData);
+                console.log('更新するタスクデータ:', JSON.stringify(formData));
                 
                 // 1. まずタスクテーブルのタスク本体を更新
                 try {               
@@ -520,8 +518,7 @@ async function loadTaskForEdit(taskId) {
         } else {
             console.log('タスクデータに日次作業時間計画値が存在しません。フォームは空のままにします。');
         }
-        console.log("\n\n!!!!!!!!!!!!!!!!!!!!!!!");
-        console.log(JSON.stringify(task));
+
         
     } catch (error) {
         console.error('タスク読み込みエラー:', error);
