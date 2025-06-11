@@ -501,12 +501,27 @@ async function loadTaskForEdit(taskId) {
             addSubtaskField();
         }
         
-        // 日次計画値を更新（サブタスクの再分配は行わない）
-        const data = calculateDailyPlans();
-        if (data) {
-            updateDailyTaskPlans(data.daily_task_plans);
-            updateDailyTimePlans(data.daily_time_plans);
+        // タスクデータに含まれる日次計画値を使用（存在しない場合のみ均等分配計算を実行）
+        console.log('取得したタスクの日次計画値を確認:', {
+            daily_task_plans: task.daily_task_plans,
+            daily_time_plans: task.daily_time_plans
+        });
+        
+        if (task.daily_task_plans && task.daily_task_plans.length > 0) {
+            console.log('タスクデータから日次作業計画値を使用');
+            updateDailyTaskPlans(task.daily_task_plans);
+        } else {
+            console.log('タスクデータに日次作業計画値が存在しません。フォームは空のままにします。');
         }
+        
+        if (task.daily_time_plans && task.daily_time_plans.length > 0) {
+            console.log('タスクデータから日次作業時間計画値を使用');
+            updateDailyTimePlans(task.daily_time_plans);
+        } else {
+            console.log('タスクデータに日次作業時間計画値が存在しません。フォームは空のままにします。');
+        }
+        console.log("\n\n!!!!!!!!!!!!!!!!!!!!!!!");
+        console.log(JSON.stringify(task));
         
     } catch (error) {
         console.error('タスク読み込みエラー:', error);
@@ -602,6 +617,7 @@ function removeSubtask(button) {
 }
 
 
+// 日次作業計画値と日次作業時間計画値が更新されない！！！！！！！！！！！！！！！！！！！！！！！！！！！！
 
 /**
  * 計画値の計算と表示更新

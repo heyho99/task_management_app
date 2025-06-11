@@ -107,6 +107,8 @@ class Task(TaskBase):
     task_id: int
     user_id: int
     subtasks: List[Subtask] = []
+    daily_task_plans: List[DailyTaskPlan] = []
+    daily_time_plans: List[DailyTimePlan] = []
     progress: int = 0  # 進捗率（フロントエンド表示用）
 
 

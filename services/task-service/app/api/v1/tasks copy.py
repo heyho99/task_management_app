@@ -6,7 +6,7 @@ import logging
 from app.crud import task as crud
 from app.schemas import task as schemas
 from app.db.session import get_db
-from app.models.models import Task, Subtask, DailyTaskPlan, DailyTimePlan
+from app.models.models import Task, Subtask
 
 # TODO: 認証関連は認証サービスと連携する必要があるため、仮実装
 from app.core.deps import get_current_user
@@ -151,30 +151,6 @@ def get_task(
         for subtask in subtasks_db
     ]
     
-    # 日次作業計画値を取得
-    daily_task_plans_db = db.query(DailyTaskPlan).filter(DailyTaskPlan.task_id == task_id).all()
-    daily_task_plans = [
-        schemas.DailyTaskPlan(
-            daily_task_plan_id=plan.daily_task_plan_id,
-            task_id=plan.task_id,
-            date=plan.date,
-            task_plan_value=plan.task_plan_value
-        )
-        for plan in daily_task_plans_db
-    ]
-    
-    # 日次作業時間計画値を取得
-    daily_time_plans_db = db.query(DailyTimePlan).filter(DailyTimePlan.task_id == task_id).all()
-    daily_time_plans = [
-        schemas.DailyTimePlan(
-            daily_time_plan_id=plan.daily_time_plan_id,
-            task_id=plan.task_id,
-            date=plan.date,
-            time_plan_value=plan.time_plan_value
-        )
-        for plan in daily_time_plans_db
-    ]
-    
     # Pydanticモデルに変換
     task = schemas.Task(
         task_id=db_task.task_id,
@@ -188,9 +164,7 @@ def get_task(
         target_time=db_task.target_time,
         comment=db_task.comment,
         progress=0,  # 現時点では進捗は0固定
-        subtasks=subtasks,
-        daily_task_plans=daily_task_plans,
-        daily_time_plans=daily_time_plans
+        subtasks=subtasks
     )
     
     return task
