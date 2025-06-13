@@ -2,158 +2,145 @@
  * タスク管理関連の機能を提供するモジュール
  */
 
-
 /**
-グローバルに公開されている関数（5個）
-1. addSubtaskField
-    呼び出し元:
-        task-create.html（onclick属性）
-        task-edit.html（onclick属性）
-        initTaskCreationPage()内
-        initTaskEditPage()内
-    入力: subtaskData = null (オプション、既存サブタスクデータ)
-    出力: なし（DOM操作でサブタスクフィールドを追加）
-2. removeSubtask
-    呼び出し元: 動的に生成されるサブタスクの削除ボタン（onclick属性）
-    入力: button (HTMLElement - 削除ボタン要素)
-    出力: なし（DOM操作でサブタスクを削除）
-3. redistributeSubtaskContributions
-    呼び出し元: 貢献値自動計算ボタン（click属性）
-    入力: なし
-    出力: なし（DOM操作で貢献値を均等分配）
-
-4. validateSubtaskContributions
-    呼び出し元: 
-      - `initTaskEditPage()`内のフォーム送信処理（タスク編集時のバリデーション）
-      - `addSubtaskField()`関数内（サブタスク追加後のバリデーション）
-      - `redistributeContributionValues()`関数内（貢献値再分配後のバリデーション）
-      - `handleTaskSubmit()`関数内（タスク作成時のバリデーション）
-    入力: なし（DOM要素から値を取得）
-    出力: `boolean` (バリデーション結果、100%に近い値かをチェック)
+  全体の構造
+  
+  【初期化関数】
+  initTaskCreationPage(): タスク作成ページの初期化
+  - サブタスク追加ボタンのイベントリスナー設定
+  - 計画値自動計算ボタンのイベントリスナー設定
+  - 1個目のサブタスクフィールド追加
+  - タスク作成フォーム送信時の処理設定
+  
+  initTaskEditPage(): タスク編集ページの初期化
+  - URLパラメータからタスクIDを取得
+  - タスク情報の読み込み（loadTaskForEdit）
+  - サブタスク追加・編集・削除のイベントリスナー設定
+  - タスク編集フォーム送信時の処理設定
+  
+  loadTaskForEdit(): タスク編集時のデータ読み込み
+  - APIからタスク情報を取得してフォームに設定
+  - サブタスク情報の読み込みと表示
+  - 日次計画値の表示更新
 
 
+  -----------------------------------------------------------------------------------------
+【サブ関数】
 
-非公開（内部）関数（16個）
+  【計算関数】
+  calculateDailyPlans(): フロントエンドで日次計画値を計算する関数
+  - 開始日から終了日までの日数を計算
+  - 日次作業計画値（100%を日数で均等分配）
+  - 日次作業時間計画値（目標時間を日数で均等分配）
 
-1. calculateInitialValues
-    呼び出し元: updateInitialValues()内
-    入力: formData (Object - フォームデータ)
-    出力: Promise (計算結果)
-2. initTaskCreationPage
-    呼び出し元: DOMContentLoadedイベントリスナー内
-    出力: なし（ページ初期化）
-3. initTaskEditPage
-    呼び出し元: DOMContentLoadedイベントリスナー内
-    出力: なし（ページ初期化）
-4. loadTaskForEdit
-    呼び出し元: initTaskEditPage()内
-    入力: taskId (string - タスクID)
-    出力: Promise (非同期処理)
-5. updateInitialValues
-    呼び出し元: 日付・時間入力フィールドのchangeイベント
-    入力: なし（DOM要素から値を取得）
-    出力: Promise (非同期処理)
-6. updateDailyTaskPlans
-    呼び出し元: updateInitialValues()内
-    入力: dailyTaskPlans (Array - 日次作業計画値値)
-    出力: なし（DOM更新）
-7. updateDailyTimePlans
-    呼び出し元: updateInitialValues()内
-    入力: dailyTimePlans (Array - 日次作業時間計画値値)
-    出力: なし（DOM更新）
-8. updateSubtaskContributions
-    呼び出し元: updateInitialValues()内
-    入力: contributionValue (number - 貢献値)
-    出力: なし（DOM更新）
-9. validateDailyTaskPlans
-    呼び出し元: フォーム送信時、計画値変更時
-    入力: なし（DOM要素から値を取得）
-    出力: boolean (バリデーション結果)
-10. validateDailyTimePlans
-    呼び出し元: フォーム送信時、計画値変更時
-    入力: なし（DOM要素から値を取得）
-    出力: boolean (バリデーション結果)
-11. handleTaskSubmit
-    呼び出し元: タスク作成フォームのsubmitイベント
-    入力: event (Event - フォーム送信イベント)
-    出力: Promise (非同期処理)
-12. collectSubtasks
-    呼び出し元: handleTaskSubmit()内、タスク編集フォーム送信時
-    入力: なし（DOM要素から値を取得）
-    出力: Array (サブタスク情報配列)
-13. collectDailyTaskPlans
-    呼び出し元: handleTaskSubmit()内、タスク編集フォーム送信時
-    入力: なし（DOM要素から値を取得）
-    出力: Array (日次作業計画値配列)
-14. collectDailyTimePlans
-    呼び出し元: handleTaskSubmit()内、タスク編集フォーム送信時
-    入力: なし（DOM要素から値を取得）
-    出力: Array (日次作業時間計画値配列)
-15. 無名関数（DOMContentLoadedイベントリスナー）
-    呼び出し元: ページ読み込み完了時
-    出力: なし（ページ初期化の振り分け）
-16. 無名関数（タスク編集フォーム送信）
-    呼び出し元: タスク編集フォームのsubmitイベント
-    入力: event (Event - フォーム送信イベント)
-    出力: Promise (非同期処理)
-*/
-
-
-/**
- * フロントエンドで日次計画値を計算する
- * @returns {Object} - 計算結果 {daily_task_plans: Array, daily_time_plans: Array}
+  【サブタスク管理】
+  addSubtaskField(): 新規・既存サブタスクフィールドの追加
+  - 新規作成時は空のフィールドを追加
+  - 既存データ編集時は値を設定してフィールドを追加
+  
+  removeSubtask(): サブタスクフィールドの削除
+  
+  redistributeSubtaskContributions(): サブタスクの貢献値を均等に再分配
+  
+  【計画値管理】
+  updatePlansAndContributions(): 日次作業計画値と日次作業時間計画値の計算と表示更新
+  - calculateDailyPlans()で計算
+  - updateDailyTaskPlans()で日次作業計画値表示更新
+  - updateDailyTimePlans()で日次作業時間計画値表示更新
+  - redistributeSubtaskContributions()でサブタスク貢献値を均等分配
+  
+  updateDailyTaskPlans(): 日次作業計画値の表示更新
+  updateDailyTimePlans(): 日次作業時間計画値の表示更新
+  
+  【バリデーション関数】
+  validateDailyTaskPlans(): 日次作業計画値のバリデーション（合計100%チェック）
+  validateDailyTimePlans(): 日次作業時間計画値のバリデーション（目標時間との一致チェック）
+  validateSubtaskContributions(): サブタスク貢献値のバリデーション（合計100%チェック）
+  
+  【フォーム処理】
+  handleTaskSubmit(): タスク作成フォーム送信処理
+  - バリデーション実行
+  - フォームデータ収集
+  - API経由でタスク作成
+  - 完了後のページ遷移
+  
+  collectSubtasks(): サブタスク情報の収集
+  collectDailyTaskPlans(): 日次作業計画値の収集
+  collectDailyTimePlans(): 日次作業時間計画値の収集
+  
+  【ページ初期化】
+  DOMContentLoadedイベントリスナー: ページ読み込み時の初期化処理
+  - 現在のページに応じた初期化関数の呼び出し
+  
+  【グローバル公開】
+  グローバルオブジェクトとして公開（window.～）
+  - addSubtaskField, removeSubtask, redistributeSubtaskContributions, validateSubtaskContributions
  */
-function calculateDailyPlans() {
-    const startDate = document.getElementById('start-date').value;
-    const dueDate = document.getElementById('due-date').value;
-    const targetTime = parseInt(document.getElementById('target-time').value);
-    
-    if (!startDate || !dueDate || !targetTime) {
-        return null;
-    }
-    
-    // 開始日から終了日までの日数を計算（両端を含む）
-    const start = new Date(startDate);
-    const due = new Date(dueDate);
-    const timeDiff = due.getTime() - start.getTime();
-    const dayCount = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
-    
-    if (dayCount <= 0) {
-        alert('終了日は開始日より後に設定してください');
-        return null;
-    }
-    
-    // 日次作業計画値（100%を日数で均等分配）
-    const dailyTaskPlanValue = (100 / dayCount);
-    
-    // 日次作業時間計画値（目標時間を日数で均等分配）
-    const dailyTimePlanValue = (targetTime / dayCount);
-    
-    // 日付ごとの配列を生成
-    const daily_task_plans = [];
-    const daily_time_plans = [];
-    
-    for (let i = 0; i < dayCount; i++) {
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + i);
-        const dateStr = currentDate.toISOString().split('T')[0];
-        
-        daily_task_plans.push({
-            date: dateStr,
-            task_plan_value: dailyTaskPlanValue
-        });
-        
-        daily_time_plans.push({
-            date: dateStr,
-            time_plan_value: dailyTimePlanValue
-        });
-    }
-    
-    return {
-        daily_task_plans,
-        daily_time_plans
-    };
-}
+
+
+  
+/**
+  関数の階層構造（メインの関数と補助関数の関係）
+  
+  ■ メインの関数（主要な機能を担う中核関数）
+  
+  1. initTaskCreationPage() - タスク作成ページの初期化
+     └─ 使用する補助関数:
+        ├─ addSubtaskField()
+        ├─ updatePlansAndContributions()
+        ├─ redistributeSubtaskContributions()
+        └─ handleTaskSubmit()
+  
+  2. initTaskEditPage() - タスク編集ページの初期化
+     └─ 使用する補助関数:
+        ├─ loadTaskForEdit()
+        ├─ addSubtaskField()
+        ├─ updatePlansAndContributions()
+        ├─ redistributeSubtaskContributions()
+        ├─ validateDailyTaskPlans()
+        ├─ validateDailyTimePlans()
+        ├─ validateSubtaskContributions()
+        ├─ collectSubtasks()
+        ├─ collectDailyTaskPlans()
+        └─ collectDailyTimePlans()
+  
+  3. handleTaskSubmit() - タスク作成フォーム送信処理
+     └─ 使用する補助関数:
+        ├─ validateDailyTaskPlans()
+        ├─ validateDailyTimePlans()
+        ├─ validateSubtaskContributions()
+        ├─ collectSubtasks()
+        ├─ collectDailyTaskPlans()
+        └─ collectDailyTimePlans()
+  
+  ■ 補助関数（メインの関数から呼び出される関数）
+  
+  【データ計算・処理系】
+  - calculateDailyPlans() - 日次計画値の基本計算
+  - loadTaskForEdit() - タスク編集時のデータ読み込み
+  - updatePlansAndContributions() - 計画値と貢献値の一括更新
+  - redistributeSubtaskContributions() - サブタスク貢献値の均等分配
+  
+  【UI更新系】
+  - addSubtaskField() - サブタスクフィールドの動的追加
+  - removeSubtask() - サブタスクフィールドの削除
+  - updateDailyTaskPlans() - 日次作業計画値の表示更新
+  - updateDailyTimePlans() - 日次作業時間計画値の表示更新
+  
+  【バリデーション系】
+  - validateDailyTaskPlans() - 日次作業計画値の検証
+  - validateDailyTimePlans() - 日次作業時間計画値の検証
+  - validateSubtaskContributions() - サブタスク貢献値の検証
+  
+  【データ収集系】
+  - collectSubtasks() - フォームからサブタスク情報を収集
+  - collectDailyTaskPlans() - フォームから日次作業計画値を収集
+  - collectDailyTimePlans() - フォームから日次作業時間計画値を収集
+ */
+
+
+
+
 
 
 
@@ -192,7 +179,7 @@ function initTaskCreationPage() {
         });
     }
 
-    // 貢献値自動計算ボタンにイベントリスナーを追加
+    // サブタスクの貢献値自動計算ボタンにイベントリスナーを追加
     const redistributeButton = document.getElementById('redistribute-contributions');
     if (redistributeButton) {
         redistributeButton.addEventListener('click', function() {
@@ -499,12 +486,7 @@ async function loadTaskForEdit(taskId) {
             addSubtaskField();
         }
         
-        // タスクデータに含まれる日次計画値を使用（存在しない場合のみ均等分配計算を実行）
-        console.log('取得したタスクの日次計画値を確認:', {
-            daily_task_plans: task.daily_task_plans,
-            daily_time_plans: task.daily_time_plans
-        });
-        
+        // 日次作業計画値の更新
         if (task.daily_task_plans && task.daily_task_plans.length > 0) {
             console.log('タスクデータから日次作業計画値を使用');
             updateDailyTaskPlans(task.daily_task_plans);
@@ -512,6 +494,7 @@ async function loadTaskForEdit(taskId) {
             console.log('タスクデータに日次作業計画値が存在しません。フォームは空のままにします。');
         }
         
+        // 日次作業時間計画値の更新
         if (task.daily_time_plans && task.daily_time_plans.length > 0) {
             console.log('タスクデータから日次作業時間計画値を使用');
             updateDailyTimePlans(task.daily_time_plans);
@@ -528,8 +511,70 @@ async function loadTaskForEdit(taskId) {
 
 
 
+
+// -----------------------------------------------------------------------------------------------------------------------  
+// サブ関数（メイン関数の補助関数）
+
+
 /**
- * サブタスクフィールドを追加
+ * フロントエンドで日次計画値を計算する
+ * @returns {Object} - 計算結果 {daily_task_plans: Array, daily_time_plans: Array}
+ */
+function calculateDailyPlans() {
+    const startDate = document.getElementById('start-date').value;
+    const dueDate = document.getElementById('due-date').value;
+    const targetTime = parseInt(document.getElementById('target-time').value);
+    
+    if (!startDate || !dueDate || !targetTime) {
+        return null;
+    }
+    
+    // 開始日から終了日までの日数を計算（両端を含む）
+    const start = new Date(startDate);
+    const due = new Date(dueDate);
+    const timeDiff = due.getTime() - start.getTime();
+    const dayCount = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+    
+    if (dayCount <= 0) {
+        alert('終了日は開始日より後に設定してください');
+        return null;
+    }
+    
+    // 日次作業計画値（100%を日数で均等分配）
+    const dailyTaskPlanValue = (100 / dayCount);
+    
+    // 日次作業時間計画値（目標時間を日数で均等分配）
+    const dailyTimePlanValue = (targetTime / dayCount);
+    
+    // 日付ごとの配列を生成
+    const daily_task_plans = [];
+    const daily_time_plans = [];
+    
+    for (let i = 0; i < dayCount; i++) {
+        const currentDate = new Date(start);
+        currentDate.setDate(start.getDate() + i);
+        const dateStr = currentDate.toISOString().split('T')[0];
+        
+        daily_task_plans.push({
+            date: dateStr,
+            task_plan_value: dailyTaskPlanValue
+        });
+        
+        daily_time_plans.push({
+            date: dateStr,
+            time_plan_value: dailyTimePlanValue
+        });
+    }
+    
+    return {
+        daily_task_plans,
+        daily_time_plans
+    };
+}
+
+
+/**
+ * サブタスクフィールドを追加する関数
  * @param {Object} subtaskData - 既存のサブタスクデータ{subtask_id: 1, subtask_name: 'サブタスク1', contribution_value: 10}
  */
 function addSubtaskField(subtaskData = null) {
@@ -614,10 +659,8 @@ function removeSubtask(button) {
 }
 
 
-// 日次作業計画値と日次作業時間計画値が更新されない！！！！！！！！！！！！！！！！！！！！！！！！！！！！
-
 /**
- * 計画値の計算と表示更新
+ * 日次作業計画値と日次作業時間計画値の計算と表示更新
  */
 function updatePlansAndContributions() {
     console.log('計画値の計算と表示更新を開始します');
