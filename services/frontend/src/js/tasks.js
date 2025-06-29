@@ -5,93 +5,22 @@
 /**
   全体の構造
   
-  【初期化関数】
-  initTaskCreationPage(): タスク作成ページの初期化
+1. initTaskCreationPage(): タスク作成ページの初期化
   - サブタスク追加ボタンのイベントリスナー設定
   - 計画値自動計算ボタンのイベントリスナー設定
   - 1個目のサブタスクフィールド追加
   - タスク作成フォーム送信時の処理設定
-  
-  initTaskEditPage(): タスク編集ページの初期化
-  - URLパラメータからタスクIDを取得
-  - タスク情報の読み込み（loadTaskForEdit）
-  - サブタスク追加・編集・削除のイベントリスナー設定
-  - タスク編集フォーム送信時の処理設定
-  
-  loadTaskForEdit(): タスク編集時のデータ読み込み
-  - APIからタスク情報を取得してフォームに設定
-  - サブタスク情報の読み込みと表示
-  - 日次計画値の表示更新
-
-
-  -----------------------------------------------------------------------------------------
-【サブ関数】
-
-  【計算関数】
-  calculateDailyPlans(): フロントエンドで日次計画値を計算する関数
-  - 開始日から終了日までの日数を計算
-  - 日次作業計画値（100%を日数で均等分配）
-  - 日次作業時間計画値（目標時間を日数で均等分配）
-
-  【サブタスク管理】
-  addSubtaskField(): 新規・既存サブタスクフィールドの追加
-  - 新規作成時は空のフィールドを追加
-  - 既存データ編集時は値を設定してフィールドを追加
-  
-  removeSubtask(): サブタスクフィールドの削除
-  
-  redistributeSubtaskContributions(): サブタスクの貢献値を均等に再分配
-  
-  【計画値管理】
-  updatePlansAndContributions(): 日次作業計画値と日次作業時間計画値の計算と表示更新
-  - calculateDailyPlans()で計算
-  - updateDailyTaskPlans()で日次作業計画値表示更新
-  - updateDailyTimePlans()で日次作業時間計画値表示更新
-  - redistributeSubtaskContributions()でサブタスク貢献値を均等分配
-  
-  updateDailyTaskPlans(): 日次作業計画値の表示更新
-  updateDailyTimePlans(): 日次作業時間計画値の表示更新
-  
-  【バリデーション関数】
-  validateDailyTaskPlans(): 日次作業計画値のバリデーション（合計100%チェック）
-  validateDailyTimePlans(): 日次作業時間計画値のバリデーション（目標時間との一致チェック）
-  validateSubtaskContributions(): サブタスク貢献値のバリデーション（合計100%チェック）
-  
-  【フォーム処理】
-  handleTaskSubmit(): タスク作成フォーム送信処理
-  - バリデーション実行
-  - フォームデータ収集
-  - API経由でタスク作成
-  - 完了後のページ遷移
-  
-  collectSubtasks(): サブタスク情報の収集
-  collectDailyTaskPlans(): 日次作業計画値の収集
-  collectDailyTimePlans(): 日次作業時間計画値の収集
-  
-  【ページ初期化】
-  DOMContentLoadedイベントリスナー: ページ読み込み時の初期化処理
-  - 現在のページに応じた初期化関数の呼び出し
-  
-  【グローバル公開】
-  グローバルオブジェクトとして公開（window.～）
-  - addSubtaskField, removeSubtask, redistributeSubtaskContributions, validateSubtaskContributions
- */
-
-
-  
-/**
-  関数の階層構造（メインの関数と補助関数の関係）
-  
-  ■ メインの関数（主要な機能を担う中核関数）
-  
-  1. initTaskCreationPage() - タスク作成ページの初期化
-     └─ 使用する補助関数:
+       └─ 使用する補助関数:
         ├─ addSubtaskField()
         ├─ updatePlansAndContributions()
         ├─ redistributeSubtaskContributions()
         └─ handleTaskSubmit()
-  
-  2. initTaskEditPage() - タスク編集ページの初期化
+        
+2. initTaskEditPage(): タスク編集ページの初期化
+  - URLパラメータからタスクIDを取得
+  - タスク情報の読み込み（loadTaskForEdit）
+  - サブタスク追加・編集・削除のイベントリスナー設定
+  - タスク編集フォーム送信時の処理設定
      └─ 使用する補助関数:
         ├─ loadTaskForEdit()
         ├─ addSubtaskField()
@@ -103,8 +32,8 @@
         ├─ collectSubtasks()
         ├─ collectDailyTaskPlans()
         └─ collectDailyTimePlans()
-  
-  3. handleTaskSubmit() - タスク作成フォーム送信処理
+
+3. handleTaskSubmit() - タスク作成フォーム送信処理
      └─ 使用する補助関数:
         ├─ validateDailyTaskPlans()
         ├─ validateDailyTimePlans()
@@ -112,7 +41,12 @@
         ├─ collectSubtasks()
         ├─ collectDailyTaskPlans()
         └─ collectDailyTimePlans()
+
+ */
+
+
   
+/**
   ■ 補助関数（メインの関数から呼び出される関数）
   
   【データ計算・処理系】
