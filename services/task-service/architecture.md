@@ -24,8 +24,8 @@ task-service/
    - FastAPIアプリケーションインスタンス作成（タイトル・説明・バージョン設定）
    - CORSMiddleware追加 → フロントエンドからのクロスオリジンリクエストを許可
 3. APIルーター登録：
-   - `api/v1/tasks(subtasks).py`モジュールの`router`を`/api/v1`プレフィックスで登録
-   - `crud/task(subtask).py`の関数を、`api/v1/tasks(subtasks).py`でエンドポイントと関連付け
+   - `api.v1.tasks(subtasks)`モジュールの`router`を`/api/v1/tasks(subtasks)/`プレフィックスで登録
+   - `crud.task(subtask)`の関数を、`api.v1.tasks(subtasks)`でエンドポイントと関連付け
 4. サーバー起動完了 → ポート8002でHTTPリクエスト受付開始
 
 【リクエスト処理時】

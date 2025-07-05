@@ -11,11 +11,12 @@ from app.models import models
 # ロギング設定
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("task-service")
-# SQLAlchemyのログを有効化
+# SQLAlchemyのログを有効化（SQLクエリの実行ログなどが確認できるようになる）
 logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 models.Base.metadata.create_all(bind=engine)
 
+# FastAPIアプリケーションのインスタンスを作成（クライアントからのリクエストを受け取ったり、レスポンスを返すためのオブジェクト）
 app = FastAPI(
     title="タスク管理サービス",
     description="タスク作成・管理APIサービス",
@@ -25,7 +26,14 @@ app = FastAPI(
 # CORS設定
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost", "http://localhost:80", "http://localhost:3000", "http://localhost:8080", "http://frontend", "http://frontend:80"],
+    allow_origins=[
+        "http://localhost", # ローカル開発環境
+        "http://localhost:80", # DB?いらないと思う
+        "http://localhost:3000", # ?いらないと思う
+        "http://localhost:8080", # ?いらないと思う
+        "http://frontend", # フロントエンドサーバ
+        "http://frontend:80" # ?いらないと思う
+        ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "User-Agent"],
