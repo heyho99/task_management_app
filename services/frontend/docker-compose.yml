@@ -3,7 +3,7 @@
 version: '3.8'
 
 services:
-  frontend:
+  frontend: # この名前が内部ホスト名になる
     # 同じディレクトリにあるDockerfileを使用してイメージをビルド
     build: .
     ports:

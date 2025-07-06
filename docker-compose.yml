@@ -5,7 +5,7 @@
 version: '3.8'
 
 services:
-  postgres:
+  postgres: # この名前が内部ホスト名になる
     image: postgres:13
     container_name: task-management-postgres
     ports:

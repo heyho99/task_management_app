@@ -3,7 +3,7 @@
 version: '3.8'
 
 services:
-  task-service:
+  task-service: # この名前が内部ホスト名になる
     build: .
     container_name: task-service
     ports:

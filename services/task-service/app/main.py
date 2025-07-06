@@ -14,6 +14,9 @@ logger = logging.getLogger("task-service")
 # SQLAlchemyのログを有効化（SQLクエリの実行ログなどが確認できるようになる）
 logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
+# modelsモジュールで定義されたすべてのテーブルが、
+# 指定されたengine（データベース接続）に存在しない場合に
+# 自動的に作成する
 models.Base.metadata.create_all(bind=engine)
 
 # FastAPIアプリケーションのインスタンスを作成（クライアントからのリクエストを受け取ったり、レスポンスを返すためのオブジェクト）
@@ -27,12 +30,12 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost", # ローカル開発環境
-        "http://localhost:80", # DB?いらないと思う
-        "http://localhost:3000", # ?いらないと思う
-        "http://localhost:8080", # ?いらないと思う
-        "http://frontend", # フロントエンドサーバ
-        "http://frontend:80" # ?いらないと思う
+        "http://localhost", # いらないと思う
+        "http://localhost:80", # いらないと思う
+        "http://localhost:3000", # いらないと思う
+        "http://localhost:8080", # フロントエンド　必要（タスクAPIにリクエスト送信時、フロントエンドのオリジンが付与されるため）
+        "http://frontend", # いらないと思う　フロントエンド（内部ネットワーク）はブラウザを経由しないため
+        "http://frontend:80" # いらないと思う（ポート省略時:80）
         ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
@@ -41,9 +44,9 @@ app.add_middleware(
     max_age=600,
 )
 
-# APIルーターの設定
-app.include_router(tasks.router, prefix="/api/v1")
-app.include_router(subtasks.router, prefix="/api/v1")
+# APIルーターの取り込み
+app.include_router(tasks.router, prefix="/api/v1") # ~:8002/api/v1/tasks　のようになる
+app.include_router(subtasks.router, prefix="/api/v1") # ~:8002/api/v1/subtasks　のようになる
 
 @app.get("/")
 async def root():
