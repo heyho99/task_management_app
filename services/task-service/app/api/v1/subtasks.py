@@ -1,3 +1,11 @@
+"""
+GET /subtasks/task/{task_id} 指定されたタスクに紐づくサブタスク一覧を取得する
+GET /subtasks/{subtask_id} 指定されたIDのサブタスクを取得する
+POST /subtasks/task/{task_id} 新しいサブタスクを作成する
+PUT /subtasks/{subtask_id} 指定されたIDのサブタスクを更新する
+DELETE /subtasks/{subtask_id} 指定されたIDのサブタスクを削除する
+"""
+
 from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -24,21 +32,23 @@ def get_subtasks_by_task(
     current_user_id: int = Depends(get_current_user)
 ):
     """
+    /subtasks/task/{task_id}
     指定されたタスクに紐づくサブタスク一覧を取得する
     """
     # TODO: ユーザーの権限確認（仮実装）
     # タスクへのアクセス権限確認
     from app.crud.task import get_task
-    task = get_task(db, task_id=task_id)
-    if task is None:
+
+    task = get_task(db, task_id=task_id) # task_idを指定して、タスクを取得する
+    if task is None: # 指定タスク無いなら、HTTPExceptionで404エラーを返す
         raise HTTPException(status_code=404, detail="タスクが見つかりません")
-    if task.user_id != current_user_id:
+    if task.user_id != current_user_id: # タスクのユーザーIDと現在のユーザーIDが一致しない場合、HTTPExceptionで403エラーを返す
         raise HTTPException(status_code=403, detail="このタスクへのアクセス権限がありません")
     
-    # サブタスク情報を取得
+    # Subtaskモデル(Subtaskテーブル)から、task_idに紐づくサブタスクを取得
     db_subtasks = db.query(Subtask).filter(Subtask.task_id == task_id).all()
     
-    # Pydanticモデルに変換
+    # Pydanticモデル(Subtaskモデル)に変換
     subtasks = [
         schemas.Subtask(
             subtask_id=subtask.subtask_id,
@@ -60,6 +70,7 @@ def get_subtask(
     current_user_id: int = Depends(get_current_user)
 ):
     """
+    /subtasks/{subtask_id}
     指定されたIDのサブタスクを取得する
     """
     subtask = crud.get_subtask(db, subtask_id=subtask_id)
@@ -92,6 +103,7 @@ def create_subtask(
     current_user_id: int = Depends(get_current_user)
 ):
     """
+    /subtasks/task/{task_id}
     新しいサブタスクを作成する
     """
     return crud.create_subtask(db=db, subtask=subtask, task_id=task_id, user_id=current_user_id)
@@ -105,6 +117,7 @@ def update_subtask(
     current_user_id: int = Depends(get_current_user)
 ):
     """
+    /subtasks/{subtask_id}
     指定されたIDのサブタスクを更新する
     """
     return crud.update_subtask(db=db, subtask_id=subtask_id, subtask=subtask, user_id=current_user_id)
@@ -117,6 +130,7 @@ def delete_subtask(
     current_user_id: int = Depends(get_current_user)
 ):
     """
+    /subtasks/{subtask_id}
     指定されたIDのサブタスクを削除する
     """
     return crud.delete_subtask(db=db, subtask_id=subtask_id, user_id=current_user_id) 
