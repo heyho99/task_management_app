@@ -25,10 +25,12 @@ router = APIRouter(
 )
 
 
+# Depends(コールバック関数)は、関数がyield~finally句を持つことが前提（dbの処理に使われる）
+# @router.get()がとれる引数：path, response_model(APIが返すレスポンスのデータ構造（スキーマ）を指定), ...
 @router.get("/task/{task_id}", response_model=List[schemas.Subtask])
 def get_subtasks_by_task(
     task_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db), # 型ヒントで、SQLAlchemyのSession型を指定
     current_user_id: int = Depends(get_current_user)
 ):
     """

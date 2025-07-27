@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 
 from app.db.session import Base
 
+# Baseを継承したクラスを作成することで、Base.metadataに登録される
 class Task(Base):
     __tablename__ = "tasks"
 

@@ -14,9 +14,9 @@ logger = logging.getLogger("task-service")
 # SQLAlchemyのログを有効化（SQLクエリの実行ログなどが確認できるようになる）
 logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
-# modelsモジュールで定義されたすべてのテーブルが、
-# 指定されたengine（データベース接続）に存在しない場合に
-# 自動的に作成する
+# Base：テーブルクラス作成の基となるベースクラス（app.db.sessionで作成）
+# engine：DBの接続情報（app.db.sessionで作成）
+# Baseを継承しているテーブル群が一括して作成される
 models.Base.metadata.create_all(bind=engine)
 
 # FastAPIアプリケーションのインスタンスを作成（クライアントからのリクエストを受け取ったり、レスポンスを返すためのオブジェクト）

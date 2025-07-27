@@ -11,7 +11,7 @@ class BaseSchemaModel(BaseModel):
 
 # サブタスクスキーマ
 class SubtaskBase(BaseSchemaModel):
-    subtask_name: str = Field(..., description="サブタスク名")
+    subtask_name: str = Field(..., description="サブタスク名") # 型=Field()で、さらに厳密にできる
     contribution_value: int = Field(..., description="作業貢献値（0-100）", ge=0, le=100)
 
 
@@ -20,7 +20,7 @@ class SubtaskCreate(SubtaskBase):
 
 
 class SubtaskUpdate(SubtaskBase):
-    subtask_name: Optional[str] = None
+    subtask_name: Optional[str] = None # Optional[]型は、入力は必須ではないことを表す
     contribution_value: Optional[int] = None
 
 
@@ -74,7 +74,7 @@ class TaskBase(BaseSchemaModel):
     task_content: Optional[str] = Field(None, description="タスク内容")
     recent_schedule: Optional[str] = Field(None, description="直近の予定")
     start_date: date = Field(..., description="開始予定日")
-    due_date: date = Field(..., description="完了予定日")
+    due_date: date = Field(..., description="完了予定日") # 下記の@validatorでさらに厳密な値条件を指定
     category: Optional[str] = Field(None, description="カテゴリー")
     target_time: Optional[int] = Field(None, description="目標作業時間（分単位）", ge=0)
     comment: Optional[str] = Field(None, description="コメント")
