@@ -1,5 +1,11 @@
 /**
  * 作業実績入力機能
+ * 
+ * ER図に基づく機能：
+ * - tasks: タスク一覧・詳細表示
+ * - subtasks: サブタスク一覧・貢献値更新
+ * - work_times: タスクレベルの作業時間記録（API未実装）
+ * - record_works: サブタスクレベルの作業記録（API未実装）
  */
 
 // ページ読み込み時の初期化
@@ -85,7 +91,10 @@ function setupEventListeners() {
  */
 async function loadTasks() {
     try {
-        const tasks = await API.get('/tasks');
+        // task-serviceのAPIエンドポイントを使用
+        const response = await apiCall('task', '/tasks', 'GET');
+        const tasks = response || [];
+        
         const taskSelect = document.getElementById('taskSelect');
         
         // 既存のオプションをクリア（最初のデフォルトオプション以外）
@@ -110,16 +119,16 @@ async function loadTasks() {
 async function loadTaskData(taskId) {
     try {
         // タスク詳細を取得
-        const task = await API.get(`/tasks/${taskId}`);
+        const task = await apiCall('task', `/tasks/${taskId}`, 'GET');
         
         // タスク詳細を表示
         displayTaskDetails(task);
         
-        // サブタスクと作業時間実績を並列で読み込み
-        await Promise.all([
-            loadSubtasks(taskId),
-            loadWorkTimes(taskId)
-        ]);
+        // サブタスクを読み込み（タスク詳細にサブタスクが含まれている）
+        loadSubtasksFromTask(task);
+        
+        // 作業時間実績を読み込み（現在はサポートされていないため、プレースホルダー表示）
+        loadWorkTimesPlaceholder();
         
         // タスク詳細セクションを表示
         document.getElementById('taskDetailsSection').classList.remove('d-none');
@@ -145,25 +154,40 @@ function displayTaskDetails(task) {
  */
 async function loadSubtasks(taskId) {
     try {
-        const subtasks = await API.get(`/tasks/${taskId}/subtasks`);
-        const subtasksList = document.getElementById('subtasksList');
-        
-        subtasksList.innerHTML = '';
-        
-        if (subtasks.length === 0) {
-            subtasksList.innerHTML = '<div class="text-muted text-center py-3">サブタスクがありません</div>';
-            return;
-        }
-        
-        subtasks.forEach(subtask => {
-            const subtaskElement = createSubtaskElement(subtask);
-            subtasksList.appendChild(subtaskElement);
-        });
+        const subtasks = await apiCall('task', `/subtasks/task/${taskId}`, 'GET');
+        displaySubtasks(subtasks);
         
     } catch (error) {
         console.error('サブタスク読み込みエラー:', error);
         showAlert('サブタスクの読み込みに失敗しました。', 'danger');
     }
+}
+
+/**
+ * タスクからサブタスクを読み込み（タスク詳細取得時に使用）
+ */
+function loadSubtasksFromTask(task) {
+    const subtasks = task.subtasks || [];
+    displaySubtasks(subtasks);
+}
+
+/**
+ * サブタスクを表示
+ */
+function displaySubtasks(subtasks) {
+    const subtasksList = document.getElementById('subtasksList');
+    
+    subtasksList.innerHTML = '';
+    
+    if (subtasks.length === 0) {
+        subtasksList.innerHTML = '<div class="text-muted text-center py-3">サブタスクがありません</div>';
+        return;
+    }
+    
+    subtasks.forEach(subtask => {
+        const subtaskElement = createSubtaskElement(subtask);
+        subtasksList.appendChild(subtaskElement);
+    });
 }
 
 /**
@@ -174,7 +198,8 @@ function createSubtaskElement(subtask) {
     div.className = 'list-group-item list-group-item-action';
     div.style.cursor = 'pointer';
     
-    const completionRate = subtask.completion_rate || 0;
+    // 現在のtask-serviceではprogress（完了率）フィールドを使用
+    const completionRate = subtask.progress || 0;
     const progressBarClass = completionRate === 100 ? 'bg-success' : 'bg-primary';
     
     div.innerHTML = `
@@ -188,7 +213,7 @@ function createSubtaskElement(subtask) {
                         ${completionRate}%
                     </div>
                 </div>
-                <small class="text-muted">実績値: ${subtask.actual_value || 0}</small>
+                <small class="text-muted">貢献値: ${subtask.contribution_value || 0}</small>
             </div>
             <div class="ms-3">
                 <i class="bi bi-pencil-square"></i>
@@ -202,27 +227,22 @@ function createSubtaskElement(subtask) {
 }
 
 /**
- * 作業時間実績一覧を読み込み
+ * 作業時間実績のプレースホルダーを表示
+ */
+function loadWorkTimesPlaceholder() {
+    const workTimesList = document.getElementById('workTimesList');
+    workTimesList.innerHTML = '<div class="text-muted text-center py-3">作業時間実績機能は開発中です<br><small>task-serviceにwork_timesのAPIが必要です</small></div>';
+}
+
+/**
+ * 作業時間実績一覧を読み込み（将来のAPI実装用）
  */
 async function loadWorkTimes(taskId) {
     try {
-        const workTimes = await API.get(`/tasks/${taskId}/work-times`);
-        const workTimesList = document.getElementById('workTimesList');
+        // 将来のAPI実装時にコメントアウトを外してください
+        // const workTimes = await apiCall('task', `/tasks/${taskId}/work-times`, 'GET');
         
-        workTimesList.innerHTML = '';
-        
-        if (workTimes.length === 0) {
-            workTimesList.innerHTML = '<div class="text-muted text-center py-3">作業時間実績がありません</div>';
-            return;
-        }
-        
-        // 日付順でソート（新しい順）
-        workTimes.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        workTimes.forEach(workTime => {
-            const workTimeElement = createWorkTimeElement(workTime);
-            workTimesList.appendChild(workTimeElement);
-        });
+        loadWorkTimesPlaceholder();
         
     } catch (error) {
         console.error('作業時間実績読み込みエラー:', error);
@@ -266,38 +286,18 @@ function createWorkTimeElement(workTime) {
 function openSubtaskModal(subtask) {
     document.getElementById('subtaskId').value = subtask.subtask_id;
     document.getElementById('subtaskNameEdit').value = subtask.subtask_name;
-    document.getElementById('completionRate').value = subtask.completion_rate || 0;
-    document.getElementById('actualValue').value = subtask.actual_value || 0;
+    document.getElementById('completionRate').value = subtask.progress || 0;
+    document.getElementById('actualValue').value = subtask.contribution_value || 0;
     
     const modal = new bootstrap.Modal(document.getElementById('subtaskModal'));
     modal.show();
 }
 
 /**
- * 作業時間モーダルを開く
+ * 作業時間モーダルを開く（プレースホルダー）
  */
 function openWorkTimeModal(workTime = null) {
-    const modal = new bootstrap.Modal(document.getElementById('workTimeModal'));
-    const modalTitle = document.getElementById('workTimeModalTitle');
-    const deleteBtn = document.getElementById('deleteWorkTimeBtn');
-    
-    if (workTime) {
-        // 編集モード
-        modalTitle.textContent = '作業時間実績編集';
-        document.getElementById('workTimeId').value = workTime.work_time_id;
-        document.getElementById('workDate').value = workTime.date;
-        document.getElementById('workTime').value = workTime.work_time;
-        deleteBtn.style.display = 'inline-block';
-    } else {
-        // 新規作成モード
-        modalTitle.textContent = '作業時間実績追加';
-        document.getElementById('workTimeId').value = '';
-        document.getElementById('workDate').value = new Date().toISOString().split('T')[0];
-        document.getElementById('workTime').value = '';
-        deleteBtn.style.display = 'none';
-    }
-    
-    modal.show();
+    showAlert('作業時間実績機能は開発中です。task-serviceにwork_timesのAPIが必要です。', 'info');
 }
 
 /**
@@ -307,19 +307,25 @@ async function saveSubtask() {
     try {
         const subtaskId = document.getElementById('subtaskId').value;
         const completionRate = parseFloat(document.getElementById('completionRate').value);
-        const actualValue = parseInt(document.getElementById('actualValue').value) || 0;
+        const contributionValue = parseInt(document.getElementById('actualValue').value) || 0;
         
         if (completionRate < 0 || completionRate > 100) {
             showAlert('完了率は0～100の範囲で入力してください。', 'warning');
             return;
         }
         
+        if (contributionValue < 0 || contributionValue > 100) {
+            showAlert('貢献値は0～100の範囲で入力してください。', 'warning');
+            return;
+        }
+        
         const updateData = {
-            completion_rate: completionRate,
-            actual_value: actualValue
+            subtask_name: document.getElementById('subtaskNameEdit').value,
+            contribution_value: contributionValue
+            // 注意: 現在のtask-serviceではprogressフィールドは更新APIでサポートされていない可能性があります
         };
         
-        await API.put(`/subtasks/${subtaskId}`, updateData);
+        await apiCall('task', `/subtasks/${subtaskId}`, 'PUT', updateData);
         
         // モーダルを閉じる
         const modal = bootstrap.Modal.getInstance(document.getElementById('subtaskModal'));
@@ -338,76 +344,17 @@ async function saveSubtask() {
 }
 
 /**
- * 作業時間実績を保存
+ * 作業時間実績を保存（プレースホルダー）
  */
 async function saveWorkTime() {
-    try {
-        const workTimeId = document.getElementById('workTimeId').value;
-        const selectedTaskId = document.getElementById('taskSelect').value;
-        const workDate = document.getElementById('workDate').value;
-        const workTime = parseInt(document.getElementById('workTime').value);
-        
-        if (!workDate || workTime < 0) {
-            showAlert('正しい日付と時間を入力してください。', 'warning');
-            return;
-        }
-        
-        const workData = {
-            task_id: parseInt(selectedTaskId),
-            date: workDate,
-            work_time: workTime
-        };
-        
-        if (workTimeId) {
-            // 更新
-            await API.put(`/work-times/${workTimeId}`, workData);
-            showAlert('作業時間実績を更新しました。', 'success');
-        } else {
-            // 新規作成
-            await API.post('/work-times', workData);
-            showAlert('作業時間実績を追加しました。', 'success');
-        }
-        
-        // モーダルを閉じる
-        const modal = bootstrap.Modal.getInstance(document.getElementById('workTimeModal'));
-        modal.hide();
-        
-        // 作業時間実績一覧を更新
-        await loadWorkTimes(selectedTaskId);
-        
-    } catch (error) {
-        console.error('作業時間実績保存エラー:', error);
-        showAlert('作業時間実績の保存に失敗しました。', 'danger');
-    }
+    showAlert('作業時間実績機能は開発中です。task-serviceにwork_timesのAPIが必要です。', 'info');
 }
 
 /**
- * 作業時間実績を削除
+ * 作業時間実績を削除（プレースホルダー）
  */
 async function deleteWorkTime() {
-    if (!confirm('この作業時間実績を削除しますか？')) {
-        return;
-    }
-    
-    try {
-        const workTimeId = document.getElementById('workTimeId').value;
-        const selectedTaskId = document.getElementById('taskSelect').value;
-        
-        await API.delete(`/work-times/${workTimeId}`);
-        
-        // モーダルを閉じる
-        const modal = bootstrap.Modal.getInstance(document.getElementById('workTimeModal'));
-        modal.hide();
-        
-        // 作業時間実績一覧を更新
-        await loadWorkTimes(selectedTaskId);
-        
-        showAlert('作業時間実績を削除しました。', 'success');
-        
-    } catch (error) {
-        console.error('作業時間実績削除エラー:', error);
-        showAlert('作業時間実績の削除に失敗しました。', 'danger');
-    }
+    showAlert('作業時間実績機能は開発中です。task-serviceにwork_timesのAPIが必要です。', 'info');
 }
 
 /**
