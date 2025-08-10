@@ -1,83 +1,76 @@
 erDiagram
-    users ||--o{ tasks : "作成する"
-    users ||--o{ user_group : "所属する"
-    groups ||--o{ user_group : "含む"
-    groups ||--o{ task_auth : "持つ"
-    tasks ||--o{ task_auth : "関連付ける"
-    tasks ||--o{ daily_task_plans : "持つ"
-    tasks ||--o{ subtasks : "持つ"
-    tasks ||--o{ work_times : "記録する"
-    tasks ||--o{ daily_time_plans : "持つ"
-    subtasks ||--o{ record_works : "記録する"
-
     users {
-        int user_id PK
-        varchar username
-        varchar password
+        INT user_id PK
+        VARCHAR username
+        VARCHAR password
     }
-    
+
     groups {
-        int group_id PK
-        varchar groupname
+        INT group_id PK
+        VARCHAR groupname
     }
-    
+
     user_group {
-        int user_group_id PK
-        int user_id FK
-        int group_id FK
+        INT user_group_id PK
+        INT user_id FK
+        INT group_id FK
     }
-    
-    task_auth {
-        int task_auth_id PK
-        int task_id FK
-        int group_id FK "null可能"
-        varchar group_auth "read/write/admin"
-    }
-    
+
     tasks {
-        int task_id PK
-        int user_id FK "作成者"
-        varchar task_name
-        text task_content
-        text recent_schedule
-        date start_date
-        date due_date
-        varchar category
-        int target_time
-        text comment
+        INT task_id PK
+        INT user_id FK "タスク作成者"
+        VARCHAR task_name
+        TEXT task_content
+        TEXT recent_schedule
+        TEXT incident
+        DATE start_date
+        DATE due_date
+        VARCHAR category
+        INT target_time "目標作業時間"
     }
-    
+
+    task_auth {
+        INT task_auth_id PK
+        INT task_id FK "対象タスク"
+        INT group_id FK "権限付与グループ (null可)"
+        VARCHAR group_auth "read,write,admin"
+    }
+
     daily_task_plans {
-        int daily_task_plan_id PK
-        int task_id FK
-        date date
-        float task_plan_value
+        INT daily_task_plan_id PK
+        INT task_id FK
+        DATE date
+        FLOAT task_plan_value "日毎の作業計画値"
     }
-    
+
     subtasks {
-        int subtask_id PK
-        int task_id FK
-        varchar subtask_name
-        int contribution_value
+        INT subtask_id PK
+        INT task_id FK
+        VARCHAR subtask_name
+        INT actual_value "作業実績値"
+        FLOAT completion_rate "完了率 (0-100)"
     }
-    
-    record_works {
-        int record_work_id PK
-        int subtask_id FK
-        date date
-        int work
-    }
-    
+
     work_times {
-        int work_time_id PK
-        int task_id FK
-        date date
-        int work_time
+        INT work_time_id PK
+        INT task_id FK
+        DATE date "作業日"
+        INT work_time "作業時間実績"
     }
-    
+
     daily_time_plans {
-        int daily_time_plan_id PK
-        int task_id FK
-        date date
-        float time_plan_value
+        INT daily_time_plan_id PK
+        INT task_id FK
+        DATE date
+        FLOAT time_plan_value "日毎の作業時間計画値"
     }
+
+    users ||--o{ user_group : "参加"
+    groups ||--o{ user_group : "所属"
+    users ||--o{ tasks : "作成"
+    tasks ||--|| task_auth : "権限を持つ"
+    groups ||--o{ task_auth : "権限を付与される"
+    tasks ||--o{ daily_task_plans : "日毎作業計画を持つ"
+    tasks ||--o{ subtasks : "サブタスクを持つ"
+    tasks ||--o{ work_times : "作業時間実績を持つ"
+    tasks ||--o{ daily_time_plans : "日毎時間計画を持つ"

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>実績入力 - タスク管理アプリ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body data-page="work">
@@ -12,8 +13,162 @@
 
     <main class="container py-4">
         <h1>実績入力</h1>
-        <div class="alert alert-info">
-            <p>実績入力機能は開発中です。</p>
+        
+        <!-- タスク選択セクション -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">タスク選択</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <select id="taskSelect" class="form-select">
+                            <option value="">タスクを選択してください</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button id="loadTaskDataBtn" class="btn btn-primary w-100" disabled>
+                            実績データを読み込み
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 選択されたタスクの詳細 -->
+        <div id="taskDetailsSection" class="d-none">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">タスク詳細</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 id="taskName"></h6>
+                            <p id="taskContent" class="text-muted"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">開始日</small>
+                                    <div id="taskStartDate"></div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">締切日</small>
+                                    <div id="taskDueDate"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- サブタスク管理セクション -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">サブタスク一覧</h5>
+                            <button id="refreshSubtasksBtn" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-arrow-clockwise"></i> 更新
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="subtasksList" class="list-group">
+                                <!-- サブタスクが動的に表示される -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 作業時間実績セクション -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">作業時間実績</h5>
+                            <div>
+                                <button id="addWorkTimeBtn" class="btn btn-success btn-sm me-2">
+                                    <i class="bi bi-plus"></i> 追加
+                                </button>
+                                <button id="refreshWorkTimesBtn" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-arrow-clockwise"></i> 更新
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="workTimesList" class="list-group">
+                                <!-- 作業時間実績が動的に表示される -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- サブタスク完了率更新モーダル -->
+        <div class="modal fade" id="subtaskModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">サブタスク完了率更新</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="subtaskForm">
+                            <input type="hidden" id="subtaskId">
+                            <div class="mb-3">
+                                <label for="subtaskNameEdit" class="form-label">サブタスク名</label>
+                                <input type="text" class="form-control" id="subtaskNameEdit" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label for="completionRate" class="form-label">完了率 (%)</label>
+                                <input type="number" class="form-control" id="completionRate" min="0" max="100" step="0.1" required>
+                                <div class="form-text">0～100の範囲で入力してください</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="actualValue" class="form-label">作業実績値</label>
+                                <input type="number" class="form-control" id="actualValue" min="0" step="1">
+                                <div class="form-text">作業実績値を入力してください</div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        <button type="button" class="btn btn-primary" id="saveSubtaskBtn">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 作業時間実績編集モーダル -->
+        <div class="modal fade" id="workTimeModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="workTimeModalTitle">作業時間実績</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="workTimeForm">
+                            <input type="hidden" id="workTimeId">
+                            <div class="mb-3">
+                                <label for="workDate" class="form-label">作業日</label>
+                                <input type="date" class="form-control" id="workDate" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="workTime" class="form-label">作業時間（分）</label>
+                                <input type="number" class="form-control" id="workTime" min="0" step="1" required>
+                                <div class="form-text">作業時間を分単位で入力してください</div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        <button type="button" class="btn btn-danger" id="deleteWorkTimeBtn" style="display: none;">削除</button>
+                        <button type="button" class="btn btn-primary" id="saveWorkTimeBtn">保存</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -22,5 +177,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/common.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/work.js"></script>
 </body>
 </html>
