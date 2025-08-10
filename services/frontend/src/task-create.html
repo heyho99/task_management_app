@@ -7,34 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-    <header class="navbar navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/">タスク管理アプリ</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.html">トップ</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="tasks.html">タスク一覧</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="task-create.html">タスク作成</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="times.html">時間管理</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="work.html">実績入力</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </header>
+<body data-page="task-create">
+    <div id="header-container"></div>
 
     <!-- 
     基本情報フォーム（タスク名、カテゴリー、タスク内容、直近の予定、開始予定日、完了予定日、目標作業時間、コメント）
@@ -180,13 +154,10 @@
         </form>
     </main>
 
-    <footer class="bg-light py-3 mt-auto">
-        <div class="container text-center">
-            <p class="mb-0">&copy; 2023 タスク管理アプリ</p>
-        </div>
-    </footer>
+    <div id="footer-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/common.js"></script>
     <script src="js/api.js"></script>
     <script src="js/tasks.js"></script>
 </body>

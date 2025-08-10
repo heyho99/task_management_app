@@ -59,19 +59,6 @@ task_management_app/
 │   │   ├── docker-compose.yml  
 │   │   └── requirements.txt # Python依存ライブラリ
 │   │
-│   ├── time-service/       # 時間管理サービス (FastAPI)
-│   │   ├── app/            # FastAPIアプリケーションコード
-│   │   │   ├── main.py     # FastAPIインスタンス化、ルーター設定
-│   │   │   ├── api/        # APIエンドポイント (ルーター) 
-│   │   │   ├── crud/       # DB操作ロジック
-│   │   │   ├── models/     # DBテーブルモデル (SQLAlchemy)
-│   │   │   ├── schemas/    # データ検証スキーマ (Pydantic)
-│   │   │   ├── core/       # 設定、共通関数など
-│   │   │   └── db/         # DBセッション管理など
-│   │   ├── Dockerfile      # 時間管理サービスコンテナ用
-│   │   ├── docker-compose.yml  
-│   │   └── requirements.txt # Python依存ライブラリ
-│   │
 │   ├── group-service/      # グループ・権限管理サービス (FastAPI)
 │   │   ├── app/            # FastAPIアプリケーションコード
 │   │   │   ├── main.py     # FastAPIインスタンス化、ルーター設定
