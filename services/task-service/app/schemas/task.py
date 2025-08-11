@@ -52,6 +52,47 @@ class DailyTaskPlan(DailyTaskPlanBase):
 # 日次時間計画スキーマ
 class DailyTimePlanBase(BaseSchemaModel):
     date: date
+    time_plan_value: float = Field(..., description="作業時間計画値（分）", ge=0)
+
+
+class DailyTimePlanCreate(DailyTimePlanBase):
+    pass
+
+
+class DailyTimePlanUpdate(DailyTimePlanBase):
+    time_plan_value: Optional[float] = None
+
+
+class DailyTimePlan(DailyTimePlanBase):
+    daily_time_plan_id: int
+    task_id: int
+
+
+# 作業記録スキーマ（作業量と時間を統合）
+class RecordWorkBase(BaseSchemaModel):
+    date: date
+    work: int = Field(..., description="作業量（0-100）", ge=0, le=100)
+    work_time: int = Field(0, description="作業時間（分）", ge=0)
+
+
+class RecordWorkCreate(RecordWorkBase):
+    pass
+
+
+class RecordWorkUpdate(RecordWorkBase):
+    date: Optional[date] = None
+    work: Optional[int] = None
+    work_time: Optional[int] = None
+
+
+class RecordWork(RecordWorkBase):
+    record_work_id: int
+    subtask_id: int
+
+
+# 日次時間計画スキーマ
+class DailyTimePlanBase(BaseSchemaModel):
+    date: date
     time_plan_value: float = Field(..., description="作業時間計画値（分単位）", ge=0)
 
 

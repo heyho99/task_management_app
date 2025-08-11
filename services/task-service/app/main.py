@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
 
-from app.api.v1 import tasks, subtasks
+from app.api.v1 import tasks, subtasks, record_works
 from app.core.config import settings
 from app.db.session import engine
 from app.models import models
@@ -47,6 +47,7 @@ app.add_middleware(
 # APIルーターの取り込み
 app.include_router(tasks.router, prefix="/api/v1") # ~:8002/api/v1/tasks　のようになる
 app.include_router(subtasks.router, prefix="/api/v1") # ~:8002/api/v1/subtasks　のようになる
+app.include_router(record_works.router, prefix="/api/v1") # ~:8002/api/v1/record-works　のようになる
 
 @app.get("/")
 async def root():

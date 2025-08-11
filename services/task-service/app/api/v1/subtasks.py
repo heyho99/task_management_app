@@ -16,7 +16,7 @@ from app.db.session import get_db
 from app.models.models import Subtask
 
 # TODO: 認証関連は認証サービスと連携する必要があるため、仮実装
-from app.core.deps import get_current_user
+from app.db.session import get_db, get_current_user
 
 router = APIRouter(
     prefix="/subtasks",

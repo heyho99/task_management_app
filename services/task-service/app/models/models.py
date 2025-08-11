@@ -68,6 +68,7 @@ class RecordWork(Base):
     subtask_id = Column(Integer, ForeignKey("subtasks.subtask_id"))
     date = Column(Date)
     work = Column(Integer)  # 0-100の値
+    work_time = Column(Integer, default=0)  # 作業時間を分単位で保存
 
     # リレーションシップ
     subtask = relationship("Subtask", back_populates="record_works") 

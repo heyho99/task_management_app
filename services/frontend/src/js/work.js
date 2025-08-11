@@ -1,11 +1,10 @@
 /**
  * 作業実績入力機能
  * 
- * ER図に基づく機能：
+ * 統合されたrecord_works APIを使用：
  * - tasks: タスク一覧・詳細表示
  * - subtasks: サブタスク一覧・貢献値更新
- * - work_times: タスクレベルの作業時間記録（API未実装）
- * - record_works: サブタスクレベルの作業記録（API未実装）
+ * - record_works: サブタスクレベルの作業記録（作業量と作業時間を統合）
  */
 
 // ページ読み込み時の初期化
@@ -63,27 +62,16 @@ function setupEventListeners() {
         }
     });
 
-    // 作業時間実績更新ボタン
-    document.getElementById('refreshWorkTimesBtn').addEventListener('click', function() {
-        const selectedTaskId = document.getElementById('taskSelect').value;
-        if (selectedTaskId) {
-            loadWorkTimes(selectedTaskId);
-        }
+    // 作業記録追加ボタン
+    document.getElementById('addRecordWorkBtn').addEventListener('click', function() {
+        openRecordWorkModal();
     });
 
-    // 作業時間追加ボタン
-    document.getElementById('addWorkTimeBtn').addEventListener('click', function() {
-        openWorkTimeModal();
-    });
+    // 作業記録保存ボタン
+    document.getElementById('saveRecordWorkBtn').addEventListener('click', saveRecordWork);
 
-    // サブタスク保存ボタン
-    document.getElementById('saveSubtaskBtn').addEventListener('click', saveSubtask);
-
-    // 作業時間保存ボタン
-    document.getElementById('saveWorkTimeBtn').addEventListener('click', saveWorkTime);
-
-    // 作業時間削除ボタン
-    document.getElementById('deleteWorkTimeBtn').addEventListener('click', deleteWorkTime);
+    // 作業記録削除ボタン
+    document.getElementById('deleteRecordWorkBtn').addEventListener('click', deleteRecordWork);
 }
 
 /**
@@ -126,9 +114,6 @@ async function loadTaskData(taskId) {
         
         // サブタスクを読み込み（タスク詳細にサブタスクが含まれている）
         loadSubtasksFromTask(task);
-        
-        // 作業時間実績を読み込み（現在はサポートされていないため、プレースホルダー表示）
-        loadWorkTimesPlaceholder();
         
         // タスク詳細セクションを表示
         document.getElementById('taskDetailsSection').classList.remove('d-none');
@@ -227,47 +212,82 @@ function createSubtaskElement(subtask) {
 }
 
 /**
- * 作業時間実績のプレースホルダーを表示
+ * サブタスクモーダルを開く
  */
-function loadWorkTimesPlaceholder() {
-    const workTimesList = document.getElementById('workTimesList');
-    workTimesList.innerHTML = '<div class="text-muted text-center py-3">作業時間実績機能は開発中です<br><small>task-serviceにwork_timesのAPIが必要です</small></div>';
+async function openSubtaskModal(subtask) {
+    document.getElementById('subtaskId').value = subtask.subtask_id;
+    document.getElementById('subtaskNameDisplay').textContent = subtask.subtask_name;
+    document.getElementById('contributionValueDisplay').textContent = subtask.contribution_value || 0;
+    
+    // 作業記録一覧を読み込み
+    await loadRecordWorks(subtask.subtask_id);
+    
+    const modal = new bootstrap.Modal(document.getElementById('subtaskModal'));
+    modal.show();
 }
 
 /**
- * 作業時間実績一覧を読み込み（将来のAPI実装用）
+ * 作業記録一覧を読み込み
  */
-async function loadWorkTimes(taskId) {
+async function loadRecordWorks(subtaskId) {
     try {
-        // 将来のAPI実装時にコメントアウトを外してください
-        // const workTimes = await apiCall('task', `/tasks/${taskId}/work-times`, 'GET');
-        
-        loadWorkTimesPlaceholder();
+        const recordWorks = await apiCall('task', `/subtasks/${subtaskId}/record-works`, 'GET');
+        displayRecordWorks(recordWorks);
         
     } catch (error) {
-        console.error('作業時間実績読み込みエラー:', error);
-        showAlert('作業時間実績の読み込みに失敗しました。', 'danger');
+        console.error('作業記録読み込みエラー:', error);
+        showAlert('作業記録の読み込みに失敗しました。', 'danger');
+        
+        // エラー時は空のリストを表示
+        const recordWorksList = document.getElementById('recordWorksList');
+        recordWorksList.innerHTML = '<div class="text-muted text-center py-3">作業記録の読み込みに失敗しました</div>';
     }
 }
 
 /**
- * 作業時間実績要素を作成
+ * 作業記録一覧を表示
  */
-function createWorkTimeElement(workTime) {
+function displayRecordWorks(recordWorks) {
+    const recordWorksList = document.getElementById('recordWorksList');
+    
+    if (recordWorks.length === 0) {
+        recordWorksList.innerHTML = '<div class="text-muted text-center py-3">作業記録がありません</div>';
+        return;
+    }
+    
+    recordWorksList.innerHTML = '';
+    recordWorks.forEach(recordWork => {
+        const recordWorkElement = createRecordWorkElement(recordWork);
+        recordWorksList.appendChild(recordWorkElement);
+    });
+}
+
+
+/**
+ * 作業記録要素を作成
+ */
+function createRecordWorkElement(recordWork) {
     const div = document.createElement('div');
     div.className = 'list-group-item list-group-item-action';
     div.style.cursor = 'pointer';
     
-    const workHours = Math.floor(workTime.work_time / 60);
-    const workMinutes = workTime.work_time % 60;
-    const timeText = workHours > 0 ? `${workHours}時間${workMinutes}分` : `${workMinutes}分`;
+    // 作業時間の表示形式を作成
+    const workTime = recordWork.work_time || 0;
+    const workHours = Math.floor(workTime / 60);
+    const workMinutes = workTime % 60;
+    const timeText = workTime > 0 ? 
+        (workHours > 0 ? `${workHours}時間${workMinutes}分` : `${workMinutes}分`) : 
+        '未入力';
     
     div.innerHTML = `
         <div class="d-flex w-100 justify-content-between align-items-center">
             <div>
-                <h6 class="mb-1">${workTime.date}</h6>
-                <span class="badge bg-primary">${timeText}</span>
-                <small class="text-muted ms-2">(${workTime.work_time}分)</small>
+                <h6 class="mb-1">${formatDate(recordWork.date)}</h6>
+                <div class="mb-1">
+                    <span class="badge bg-primary me-2">作業量: ${recordWork.work}</span>
+                    <span class="badge bg-info">時間: ${timeText}</span>
+                </div>
+                ${workTime > 0 ? `<small class="text-muted">(${workTime}分)</small>` : ''}
             </div>
             <div>
                 <i class="bi bi-pencil-square"></i>
@@ -275,29 +295,125 @@ function createWorkTimeElement(workTime) {
         </div>
     `;
     
-    div.addEventListener('click', () => openWorkTimeModal(workTime));
+    div.addEventListener('click', () => openRecordWorkModal(recordWork));
     
     return div;
 }
 
 /**
- * サブタスクモーダルを開く
+ * 作業記録モーダルを開く
  */
-function openSubtaskModal(subtask) {
-    document.getElementById('subtaskId').value = subtask.subtask_id;
-    document.getElementById('subtaskNameEdit').value = subtask.subtask_name;
-    document.getElementById('completionRate').value = subtask.progress || 0;
-    document.getElementById('actualValue').value = subtask.contribution_value || 0;
+function openRecordWorkModal(recordWork = null) {
+    const modalTitle = document.getElementById('recordWorkModalTitle');
+    const deleteBtn = document.getElementById('deleteRecordWorkBtn');
     
-    const modal = new bootstrap.Modal(document.getElementById('subtaskModal'));
+    if (recordWork) {
+        // 編集モード
+        modalTitle.textContent = '作業記録編集';
+        document.getElementById('recordWorkId').value = recordWork.record_work_id;
+        document.getElementById('recordWorkDate').value = recordWork.date;
+        document.getElementById('recordWork').value = recordWork.work;
+        document.getElementById('workTimeAmount').value = recordWork.work_time || 0;
+        deleteBtn.style.display = 'inline-block';
+    } else {
+        // 新規作成モード
+        modalTitle.textContent = '作業記録新規作成';
+        document.getElementById('recordWorkId').value = '';
+        document.getElementById('recordWorkDate').value = '';
+        document.getElementById('recordWork').value = '';
+        document.getElementById('workTimeAmount').value = '';
+        deleteBtn.style.display = 'none';
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('recordWorkModal'));
     modal.show();
 }
 
 /**
- * 作業時間モーダルを開く（プレースホルダー）
+ * 作業記録を保存
  */
-function openWorkTimeModal(workTime = null) {
-    showAlert('作業時間実績機能は開発中です。task-serviceにwork_timesのAPIが必要です。', 'info');
+async function saveRecordWork() {
+    try {
+        const recordWorkId = document.getElementById('recordWorkId').value;
+        const subtaskId = document.getElementById('subtaskId').value;
+        const workTimeValue = document.getElementById('workTimeAmount').value;
+        const recordWorkData = {
+            date: document.getElementById('recordWorkDate').value,
+            work: parseInt(document.getElementById('recordWork').value),
+            work_time: workTimeValue ? parseInt(workTimeValue) : 0
+        };
+        
+        // バリデーション
+        if (!recordWorkData.date) {
+            showAlert('作業日は必須です。', 'warning');
+            return;
+        }
+        
+        if (recordWorkData.work < 0 || recordWorkData.work > 100) {
+            showAlert('作業量は0～100の範囲で入力してください。', 'warning');
+            return;
+        }
+        
+        if (recordWorkData.work_time < 0) {
+            showAlert('作業時間は0以上で入力してください。', 'warning');
+            return;
+        }
+        
+        let result;
+        if (recordWorkId) {
+            // 更新
+            result = await apiCall('task', `/record-works/${recordWorkId}`, 'PUT', recordWorkData);
+        } else {
+            // 新規作成
+            result = await apiCall('task', `/subtasks/${subtaskId}/record-works`, 'POST', recordWorkData);
+        }
+        
+        // モーダルを閉じる
+        const modal = bootstrap.Modal.getInstance(document.getElementById('recordWorkModal'));
+        modal.hide();
+        
+        // 作業記録一覧を再読み込み
+        await loadRecordWorks(subtaskId);
+        
+        showAlert(recordWorkId ? '作業記録を更新しました。' : '作業記録を作成しました。', 'success');
+        
+    } catch (error) {
+        console.error('作業記録保存エラー:', error);
+        if (error.detail && error.detail.includes('既に存在します')) {
+            showAlert('その日付の作業記録は既に存在します。', 'warning');
+        } else {
+            showAlert('作業記録の保存に失敗しました。', 'danger');
+        }
+    }
+}
+
+/**
+ * 作業記録を削除
+ */
+async function deleteRecordWork() {
+    if (!confirm('この作業記録を削除しますか？')) {
+        return;
+    }
+    
+    try {
+        const recordWorkId = document.getElementById('recordWorkId').value;
+        const subtaskId = document.getElementById('subtaskId').value;
+        
+        await apiCall('task', `/record-works/${recordWorkId}`, 'DELETE');
+        
+        // モーダルを閉じる
+        const modal = bootstrap.Modal.getInstance(document.getElementById('recordWorkModal'));
+        modal.hide();
+        
+        // 作業記録一覧を再読み込み
+        await loadRecordWorks(subtaskId);
+        
+        showAlert('作業記録を削除しました。', 'success');
+        
+    } catch (error) {
+        console.error('作業記録削除エラー:', error);
+        showAlert('作業記録の削除に失敗しました。', 'danger');
+    }
 }
 
 /**
@@ -344,24 +460,71 @@ async function saveSubtask() {
 }
 
 /**
- * 作業時間実績を保存（プレースホルダー）
- */
-async function saveWorkTime() {
-    showAlert('作業時間実績機能は開発中です。task-serviceにwork_timesのAPIが必要です。', 'info');
-}
-
-/**
- * 作業時間実績を削除（プレースホルダー）
- */
-async function deleteWorkTime() {
-    showAlert('作業時間実績機能は開発中です。task-serviceにwork_timesのAPIが必要です。', 'info');
-}
-
-/**
  * タスク詳細セクションを非表示にする
  */
 function hideTaskDetails() {
     document.getElementById('taskDetailsSection').classList.add('d-none');
+}
+
+/**
+ * プログレスバーを更新
+ */
+function updateProgressBar(subtaskId, progress) {
+    const progressBar = document.querySelector(`[data-subtask-id="${subtaskId}"] .progress-bar`);
+    if (progressBar) {
+        // プログレスバーのアニメーション
+        progressBar.style.transition = 'width 0.5s ease-in-out';
+        progressBar.style.width = `${progress}%`;
+        progressBar.textContent = `${progress}%`;
+        
+        // プログレスバーの色を更新
+        progressBar.className = 'progress-bar';
+        if (progress >= 100) {
+            progressBar.classList.add('bg-success');
+        } else if (progress >= 50) {
+            progressBar.classList.add('bg-info');
+        } else {
+            progressBar.classList.add('bg-warning');
+        }
+    }
+}
+
+/**
+ * 日付をフォーマット
+ */
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+}
+
+/**
+ * ローディング状態を表示
+ */
+function showLoading(element) {
+    element.innerHTML = `
+        <div class="d-flex justify-content-center align-items-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span class="ms-2">読み込み中...</span>
+        </div>
+    `;
+}
+
+/**
+ * エラー状態を表示
+ */
+function showError(element, message) {
+    element.innerHTML = `
+        <div class="alert alert-danger text-center" role="alert">
+            <i class="bi bi-exclamation-triangle"></i>
+            <div class="mt-2">${message}</div>
+        </div>
+    `;
 }
 
 /**
@@ -378,6 +541,7 @@ function showAlert(message, type = 'info') {
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type} alert-dismissible fade show alert-custom`;
     alertDiv.innerHTML = `
+        <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'info-circle'}"></i>
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;

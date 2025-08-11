@@ -17,7 +17,6 @@ services:
       - "host:host-gateway"
     networks:
       - task-management-network
-      - default
 
 networks:
   task-management-network:

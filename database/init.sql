@@ -70,20 +70,14 @@ CREATE TABLE subtasks (
     contribution_value INTEGER
 );
 
--- record_worksテーブル
+-- record_worksテーブル（作業記録と時間実績を統合）
 CREATE TABLE record_works (
     record_work_id SERIAL PRIMARY KEY,
     subtask_id INTEGER NOT NULL REFERENCES subtasks(subtask_id) ON DELETE CASCADE,
     date DATE NOT NULL,
-    work INTEGER NOT NULL
-);
-
--- work_timesテーブル
-CREATE TABLE work_times (
-    work_time_id SERIAL PRIMARY KEY,
-    task_id INTEGER NOT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
-    date DATE NOT NULL,
-    work_time INTEGER NOT NULL
+    work INTEGER NOT NULL,
+    work_time INTEGER DEFAULT 0,
+    UNIQUE(subtask_id, date)
 );
 
 -- daily_time_plansテーブル
@@ -104,7 +98,7 @@ CREATE INDEX idx_tasks_user_id ON tasks(user_id);
 CREATE INDEX idx_daily_task_plans_task_id ON daily_task_plans(task_id);
 CREATE INDEX idx_subtasks_task_id ON subtasks(task_id);
 CREATE INDEX idx_record_works_subtask_id ON record_works(subtask_id);
-CREATE INDEX idx_work_times_task_id ON work_times(task_id);
+CREATE INDEX idx_record_works_date ON record_works(date);
 CREATE INDEX idx_daily_time_plans_task_id ON daily_time_plans(task_id);
 
 -- サンプルデータの挿入
@@ -173,23 +167,14 @@ INSERT INTO daily_task_plans (task_id, date, task_plan_value) VALUES
 (4, '2023-02-02', 0.5),
 (5, '2023-01-16', 0.2);
 
--- 実績記録
-INSERT INTO record_works (subtask_id, date, work) VALUES
-(1, '2023-01-05', 3),
-(2, '2023-01-06', 4),
-(4, '2023-01-07', 2),
-(6, '2023-01-12', 5),
-(9, '2023-02-02', 6),
-(11, '2023-01-16', 4);
-
--- 作業時間記録
-INSERT INTO work_times (task_id, date, work_time) VALUES
-(1, '2023-01-05', 120),
-(1, '2023-01-06', 180),
-(2, '2023-01-07', 90),
-(3, '2023-01-12', 150),
-(4, '2023-02-02', 240),
-(5, '2023-01-16', 200);
+-- 実績記録（作業量と時間を統合）
+INSERT INTO record_works (subtask_id, date, work, work_time) VALUES
+(1, '2023-01-05', 3, 120),
+(2, '2023-01-06', 4, 180),
+(4, '2023-01-07', 2, 90),
+(6, '2023-01-12', 5, 150),
+(9, '2023-02-02', 6, 240),
+(11, '2023-01-16', 4, 200);
 
 -- 日次時間計画
 INSERT INTO daily_time_plans (task_id, date, time_plan_value) VALUES
