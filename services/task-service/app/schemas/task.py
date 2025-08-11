@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from datetime import date
 from pydantic import BaseModel, Field, validator
 from typing import Dict, Any
@@ -79,8 +79,8 @@ class RecordWorkCreate(RecordWorkBase):
     pass
 
 
-class RecordWorkUpdate(RecordWorkBase):
-    date: Optional[date] = None
+class RecordWorkUpdate(BaseSchemaModel):
+    date: Optional[str] = None
     work: Optional[int] = None
     work_time: Optional[int] = None
 

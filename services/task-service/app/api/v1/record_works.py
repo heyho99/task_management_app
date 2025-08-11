@@ -32,6 +32,7 @@ def get_record_works(
 def create_record_work(
     subtask_id: int,
     record_work: RecordWorkCreate,
+    current_user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """作業記録を作成"""
@@ -55,6 +56,7 @@ def create_record_work(
 @router.get("/record-works/{record_work_id}", response_model=RecordWork)
 def get_record_work(
     record_work_id: int,
+    current_user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """作業記録を取得"""
@@ -71,6 +73,7 @@ def get_record_work(
 def update_record_work(
     record_work_id: int,
     record_work_update: RecordWorkUpdate,
+    current_user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """作業記録を更新"""
@@ -92,6 +95,7 @@ def update_record_work(
 @router.delete("/record-works/{record_work_id}")
 def delete_record_work(
     record_work_id: int,
+    current_user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """作業記録を削除"""
@@ -107,6 +111,7 @@ def delete_record_work(
 @router.get("/subtasks/{subtask_id}/progress")
 def get_subtask_progress(
     subtask_id: int,
+    current_user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """サブタスクの進捗率を取得"""

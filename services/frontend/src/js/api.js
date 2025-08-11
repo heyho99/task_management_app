@@ -8,9 +8,19 @@
   API_ENDPOINTSとして各サービスのベースURLを定義
   API_ENDPOINTSをグローバル変数として公開
   
-  getAuthToken():ローカルストレージから認証トークンを取得する関数
-  
-  apiCall():API通信の共通関数
+  getAuthToken():ローカルストレージから認証トークンを            const errorMsg = typeof responseData === 'object' && responseData !== null ? 
+                responseData.detail || JSON.stringify(responseData) : 
+                responseData || '不明なエラーが発生しました';
+            
+            console.error(`APIエラー [${response.status}]: ${errorMsg}`);
+            console.error('完全なエラーレスポンス:', responseData);
+            
+            // エラーオブジェクトを作成
+            const error = new Error(errorMsg);
+            error.statusCode = response.status;
+            error.responseData = responseData;
+            error.url = url;
+            error.method = method;apiCall():API通信の共通関数
   - 対象サービスのエンドポイントのURLを作成
   - リクエストヘッダを作成（headers）
   - 認証が必要な時は、Bearer認証に使うAuthorizationヘッダを追加（headers['Authorization']）
@@ -151,6 +161,17 @@ async function apiCall(service, endpoint, method = 'GET', data = null, requiresA
                 responseData || '不明なエラーが発生しました';
             
             console.error(`APIエラー [${response.status}]: ${errorMsg}`);
+            console.error('完全なエラーレスポンス:', responseData);
+            if (responseData && responseData.detail) {
+                console.error('エラー詳細配列:', responseData.detail);
+                // 配列の各要素を詳しく表示
+                responseData.detail.forEach((error, index) => {
+                    console.error(`エラー ${index + 1}:`, error);
+                    if (error.loc) {
+                        console.error(`エラー場所:`, error.loc);
+                    }
+                });
+            }
             
             // エラーオブジェクトを作成
             const error = new Error(errorMsg);

@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
 
@@ -50,6 +50,23 @@ def update_record_work(db: Session, record_work_id: int, record_work_update: Rec
         return None
     
     update_data = record_work_update.dict(exclude_unset=True)
+    
+    # 日付文字列をdateオブジェクトに変換
+    if 'date' in update_data and update_data['date'] is not None:
+        if isinstance(update_data['date'], str):
+            try:
+                update_data['date'] = datetime.strptime(update_data['date'], '%Y-%m-%d').date()
+            except ValueError:
+                raise ValueError("日付は YYYY-MM-DD 形式で入力してください")
+    
+    # バリデーション
+    if 'work' in update_data and update_data['work'] is not None:
+        if update_data['work'] < 0 or update_data['work'] > 100:
+            raise ValueError("作業量は0～100の範囲で入力してください")
+    
+    if 'work_time' in update_data and update_data['work_time'] is not None:
+        if update_data['work_time'] < 0:
+            raise ValueError("作業時間は0以上で入力してください")
     
     # 日付を変更する場合、同じ日付の記録が既に存在しないかチェック
     if 'date' in update_data and update_data['date'] != db_record_work.date:
