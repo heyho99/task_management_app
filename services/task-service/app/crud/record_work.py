@@ -139,3 +139,35 @@ def get_record_works_by_task_and_date_range(db: Session, task_id: int, start_dat
             RecordWork.date <= end_date
         )
     ).order_by(RecordWork.date.asc()).all()
+
+
+def get_subtask_work_summary(db: Session, subtask_id: int) -> dict:
+    """サブタスクの作業実績集計を取得"""
+    result = db.query(
+        func.sum(RecordWork.work).label('total_work'),
+        func.sum(RecordWork.work_time).label('total_work_time'),
+        func.count(RecordWork.record_work_id).label('work_days')
+    ).filter(RecordWork.subtask_id == subtask_id).first()
+    
+    return {
+        'total_work': result.total_work or 0,
+        'total_work_time': result.total_work_time or 0,
+        'work_days': result.work_days or 0
+    }
+
+
+def get_task_work_summary(db: Session, task_id: int) -> dict:
+    """タスクの作業実績集計を取得"""
+    from app.models.models import Subtask
+    
+    result = db.query(
+        func.sum(RecordWork.work).label('total_work'),
+        func.sum(RecordWork.work_time).label('total_work_time'),
+        func.count(RecordWork.record_work_id).label('total_work_records')
+    ).join(Subtask).filter(Subtask.task_id == task_id).first()
+    
+    return {
+        'total_work': result.total_work or 0,
+        'total_work_time': result.total_work_time or 0,
+        'total_work_records': result.total_work_records or 0
+    }

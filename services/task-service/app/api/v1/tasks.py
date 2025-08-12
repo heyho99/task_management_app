@@ -56,16 +56,30 @@ def get_tasks(
     for db_task in db_tasks:
         # サブタスクを取得
         subtasks_db = db.query(Subtask).filter(Subtask.task_id == db_task.task_id).all()
-        subtasks = [
-            schemas.Subtask(
+        
+        # 作業実績集計をimport
+        from app.crud import record_work as crud_record_work
+        
+        subtasks = []
+        for subtask in subtasks_db:
+            # サブタスクの作業実績集計を取得
+            work_summary = crud_record_work.get_subtask_work_summary(db, subtask.subtask_id)
+            progress = crud_record_work.get_subtask_progress(db, subtask.subtask_id)
+            
+            subtask_model = schemas.Subtask(
                 subtask_id=subtask.subtask_id,
                 task_id=subtask.task_id,
                 subtask_name=subtask.subtask_name,
                 contribution_value=subtask.contribution_value,
-                progress=0  # 仮の進捗率
+                progress=progress,
+                total_work=work_summary["total_work"],
+                total_work_time=work_summary["total_work_time"],
+                work_days=work_summary["work_days"]
             )
-            for subtask in subtasks_db
-        ]
+            subtasks.append(subtask_model)
+        
+        # タスクの作業実績集計を取得
+        task_work_summary = crud_record_work.get_task_work_summary(db, db_task.task_id)
         
         # タスクをPydanticモデルに変換
         task = schemas.Task(
@@ -80,7 +94,8 @@ def get_tasks(
             target_time=db_task.target_time,
             comment=db_task.comment,
             progress=0,  # 現時点では進捗は0固定
-            subtasks=subtasks
+            subtasks=subtasks,
+            total_work_time=task_work_summary["total_work_time"]
         )
         
         tasks.append(task)
@@ -140,16 +155,30 @@ def get_task(
     
     # サブタスクを取得
     subtasks_db = db.query(Subtask).filter(Subtask.task_id == task_id).all()
-    subtasks = [
-        schemas.Subtask(
+    
+    # 作業実績集計をimport
+    from app.crud import record_work as crud_record_work
+    
+    subtasks = []
+    for subtask in subtasks_db:
+        # サブタスクの作業実績集計を取得
+        work_summary = crud_record_work.get_subtask_work_summary(db, subtask.subtask_id)
+        progress = crud_record_work.get_subtask_progress(db, subtask.subtask_id)
+        
+        subtask_model = schemas.Subtask(
             subtask_id=subtask.subtask_id,
             task_id=subtask.task_id,
             subtask_name=subtask.subtask_name,
             contribution_value=subtask.contribution_value,
-            progress=0  # 仮の進捗率
+            progress=progress,
+            total_work=work_summary["total_work"],
+            total_work_time=work_summary["total_work_time"],
+            work_days=work_summary["work_days"]
         )
-        for subtask in subtasks_db
-    ]
+        subtasks.append(subtask_model)
+    
+    # タスクの作業実績集計を取得
+    task_work_summary = crud_record_work.get_task_work_summary(db, task_id)
     
     # 日次作業計画値を取得
     daily_task_plans_db = db.query(DailyTaskPlan).filter(DailyTaskPlan.task_id == task_id).all()
@@ -190,7 +219,8 @@ def get_task(
         progress=0,  # 現時点では進捗は0固定
         subtasks=subtasks,
         daily_task_plans=daily_task_plans,
-        daily_time_plans=daily_time_plans
+        daily_time_plans=daily_time_plans,
+        total_work_time=task_work_summary["total_work_time"]
     )
     
     return task

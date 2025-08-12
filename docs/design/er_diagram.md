@@ -6,7 +6,6 @@ erDiagram
     tasks ||--o{ task_auth : "関連付ける"
     tasks ||--o{ daily_task_plans : "持つ"
     tasks ||--o{ subtasks : "持つ"
-    tasks ||--o{ work_times : "記録する"
     tasks ||--o{ daily_time_plans : "持つ"
     subtasks ||--o{ record_works : "記録する"
 
@@ -66,12 +65,6 @@ erDiagram
         int subtask_id FK
         date date
         int work
-    }
-    
-    work_times {
-        int work_time_id PK
-        int task_id FK
-        date date
         int work_time
     }
     

@@ -132,6 +132,20 @@ function displayTaskDetails(task) {
     document.getElementById('taskContent').textContent = task.task_content || '内容なし';
     document.getElementById('taskStartDate').textContent = task.start_date || '未設定';
     document.getElementById('taskDueDate').textContent = task.due_date || '未設定';
+    
+    // タスクの作業時間合計を表示
+    const totalWorkTime = task.total_work_time || 0;
+    const workHours = Math.floor(totalWorkTime / 60);
+    const workMinutes = totalWorkTime % 60;
+    const timeText = totalWorkTime > 0 ? 
+        (workHours > 0 ? `${workHours}時間${workMinutes}分` : `${workMinutes}分`) : 
+        '未入力';
+    
+    // タスク詳細に作業時間を追加表示
+    const taskWorkTimeElement = document.getElementById('taskWorkTime');
+    if (taskWorkTimeElement) {
+        taskWorkTimeElement.textContent = timeText;
+    }
 }
 
 /**
@@ -187,18 +201,45 @@ function createSubtaskElement(subtask) {
     const completionRate = subtask.progress || 0;
     const progressBarClass = completionRate === 100 ? 'bg-success' : 'bg-primary';
     
+    // 作業実績の表示
+    const totalWork = subtask.total_work || 0;
+    const totalWorkTime = subtask.total_work_time || 0;
+    const workDays = subtask.work_days || 0;
+    
+    // 作業時間の表示形式を作成
+    const workHours = Math.floor(totalWorkTime / 60);
+    const workMinutes = totalWorkTime % 60;
+    const timeText = totalWorkTime > 0 ? 
+        (workHours > 0 ? `${workHours}時間${workMinutes}分` : `${workMinutes}分`) : 
+        '0分';
+    
     div.innerHTML = `
         <div class="d-flex w-100 justify-content-between align-items-center">
             <div class="flex-grow-1">
                 <h6 class="mb-1">${subtask.subtask_name}</h6>
-                <div class="progress" style="height: 20px;">
+                <div class="progress mb-2" style="height: 20px;">
                     <div class="progress-bar ${progressBarClass}" role="progressbar" 
                          style="width: ${completionRate}%" aria-valuenow="${completionRate}" 
                          aria-valuemin="0" aria-valuemax="100">
                         ${completionRate}%
                     </div>
                 </div>
-                <small class="text-muted">貢献値: ${subtask.contribution_value || 0}</small>
+                <div class="row">
+                    <div class="col-md-6">
+                        <small class="text-muted">貢献値: ${subtask.contribution_value || 0}</small>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted">累計作業量: <span class="badge bg-warning text-dark">${totalWork}</span></small>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <small class="text-muted">累計作業時間: <span class="badge bg-success">${timeText}</span></small>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted">作業日数: <span class="badge bg-info">${workDays}日</span></small>
+                    </div>
+                </div>
             </div>
             <div class="ms-3">
                 <i class="bi bi-pencil-square"></i>
@@ -218,6 +259,23 @@ async function openSubtaskModal(subtask) {
     document.getElementById('subtaskId').value = subtask.subtask_id;
     document.getElementById('subtaskNameDisplay').textContent = subtask.subtask_name;
     document.getElementById('contributionValueDisplay').textContent = subtask.contribution_value || 0;
+    
+    // 作業実績情報を表示
+    const totalWork = subtask.total_work || 0;
+    const totalWorkTime = subtask.total_work_time || 0;
+    const workDays = subtask.work_days || 0;
+    
+    // 作業時間の表示形式を作成
+    const workHours = Math.floor(totalWorkTime / 60);
+    const workMinutes = totalWorkTime % 60;
+    const timeText = totalWorkTime > 0 ? 
+        (workHours > 0 ? `${workHours}時間${workMinutes}分` : `${workMinutes}分`) : 
+        '0分';
+    
+    // 作業実績サマリーを表示
+    document.getElementById('totalWorkDisplay').textContent = totalWork;
+    document.getElementById('totalWorkTimeDisplay').textContent = timeText;
+    document.getElementById('workDaysDisplay').textContent = `${workDays}日`;
     
     // 作業記録一覧を読み込み
     await loadRecordWorks(subtask.subtask_id);

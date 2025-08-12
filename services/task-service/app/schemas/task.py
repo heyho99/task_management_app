@@ -28,6 +28,9 @@ class Subtask(SubtaskBase):
     subtask_id: int
     task_id: int
     progress: int = 0  # 進捗率（フロントエンド表示用）
+    total_work: int = 0  # 作業量の合計
+    total_work_time: int = 0  # 作業時間の合計（分）
+    work_days: int = 0  # 作業した日数
 
 
 # 日次タスク計画スキーマ
@@ -153,6 +156,7 @@ class Task(TaskBase):
     daily_task_plans: List[DailyTaskPlan] = []
     daily_time_plans: List[DailyTimePlan] = []
     progress: int = 0  # 進捗率（フロントエンド表示用）
+    total_work_time: int = 0  # タスク全体の作業時間合計（分）
 
 
 # タスク初期値計算用スキーマ

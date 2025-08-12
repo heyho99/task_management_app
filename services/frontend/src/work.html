@@ -58,6 +58,12 @@
                                     <div id="taskDueDate"></div>
                                 </div>
                             </div>
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <small class="text-muted">累計作業時間</small>
+                                    <div id="taskWorkTime" class="fw-bold text-primary">0分</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -105,6 +111,25 @@
                                 <div class="col-md-6">
                                     <label class="form-label">貢献値</label>
                                     <div id="contributionValueDisplay" class="form-control-plaintext"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 作業実績サマリー -->
+                        <div class="mb-4">
+                            <h6 class="mb-2">作業実績サマリー</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">累計作業量</label>
+                                    <div id="totalWorkDisplay" class="form-control-plaintext fw-bold text-primary"></div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">累計作業時間</label>
+                                    <div id="totalWorkTimeDisplay" class="form-control-plaintext fw-bold text-success"></div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">作業日数</label>
+                                    <div id="workDaysDisplay" class="form-control-plaintext fw-bold text-info"></div>
                                 </div>
                             </div>
                         </div>

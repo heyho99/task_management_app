@@ -125,3 +125,53 @@ def get_subtask_progress(
     
     progress = crud_record_work.get_subtask_progress(db, subtask_id=subtask_id)
     return {"subtask_id": subtask_id, "progress": progress}
+
+
+@router.get("/subtasks/{subtask_id}/summary")
+def get_subtask_work_summary(
+    subtask_id: int,
+    current_user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """サブタスクの作業実績集計を取得"""
+    # サブタスクの存在確認
+    subtask = crud_subtask.get_subtask(db, subtask_id=subtask_id)
+    if not subtask:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="サブタスクが見つかりません"
+        )
+    
+    summary = crud_record_work.get_subtask_work_summary(db, subtask_id=subtask_id)
+    return {
+        "subtask_id": subtask_id,
+        "total_work": summary["total_work"],
+        "total_work_time": summary["total_work_time"],
+        "work_days": summary["work_days"]
+    }
+
+
+@router.get("/tasks/{task_id}/work-summary")
+def get_task_work_summary(
+    task_id: int,
+    current_user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """タスクの作業実績集計を取得"""
+    from app.crud import task as crud_task
+    
+    # タスクの存在確認
+    task = crud_task.get_task(db, task_id=task_id)
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="タスクが見つかりません"
+        )
+    
+    summary = crud_record_work.get_task_work_summary(db, task_id=task_id)
+    return {
+        "task_id": task_id,
+        "total_work": summary["total_work"],
+        "total_work_time": summary["total_work_time"],
+        "total_work_records": summary["total_work_records"]
+    }
