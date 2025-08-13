@@ -324,8 +324,8 @@ body {
     color: #666;
 }
 
-/* 進捗バー */
-.progress-bar {
+/* 進捗バー（カスタム） */
+.custom-progress-bar {
     width: 100%;
     height: 8px;
     background-color: #E5E5E5;
@@ -334,7 +334,7 @@ body {
     margin: 5px 0;
 }
 
-.progress {
+.custom-progress {
     height: 100%;
     background-color: #4285F4;
 }

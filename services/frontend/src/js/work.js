@@ -129,22 +129,65 @@ async function loadTaskData(taskId) {
  */
 function displayTaskDetails(task) {
     document.getElementById('taskName').textContent = task.task_name;
-    document.getElementById('taskContent').textContent = task.task_content || '内容なし';
+    document.getElementById('taskContent').textContent = task.task_content || '内容が設定されていません';
     document.getElementById('taskStartDate').textContent = task.start_date || '未設定';
     document.getElementById('taskDueDate').textContent = task.due_date || '未設定';
     
     // タスクの作業時間合計を表示
     const totalWorkTime = task.total_work_time || 0;
+    const targetTime = task.target_time || 0;
+    
+    // 作業時間の表示形式を作成
     const workHours = Math.floor(totalWorkTime / 60);
     const workMinutes = totalWorkTime % 60;
-    const timeText = totalWorkTime > 0 ? 
+    const workTimeText = totalWorkTime > 0 ? 
         (workHours > 0 ? `${workHours}時間${workMinutes}分` : `${workMinutes}分`) : 
-        '未入力';
+        '0分';
     
-    // タスク詳細に作業時間を追加表示
-    const taskWorkTimeElement = document.getElementById('taskWorkTime');
-    if (taskWorkTimeElement) {
-        taskWorkTimeElement.textContent = timeText;
+    // 目標時間の表示形式を作成
+    const targetHours = Math.floor(targetTime / 60);
+    const targetMinutes = targetTime % 60;
+    const targetTimeText = targetTime > 0 ? 
+        (targetHours > 0 ? `${targetHours}時間${targetMinutes}分` : `${targetMinutes}分`) : 
+        '未設定';
+    
+    // 進捗率を計算
+    const progressPercentage = targetTime > 0 ? Math.min((totalWorkTime / targetTime) * 100, 100) : 0;
+    
+    // 残り時間を計算
+    const remainingTime = targetTime > 0 ? Math.max(targetTime - totalWorkTime, 0) : 0;
+    const remainingHours = Math.floor(remainingTime / 60);
+    const remainingMinutes = remainingTime % 60;
+    const remainingTimeText = targetTime > 0 ? 
+        (remainingTime > 0 ? 
+            (remainingHours > 0 ? `残り${remainingHours}時間${remainingMinutes}分` : `残り${remainingMinutes}分`) : 
+            '目標達成!') : 
+        '';
+    
+    // DOM要素を更新
+    document.getElementById('taskWorkTime').textContent = workTimeText;
+    document.getElementById('taskTargetTime').textContent = targetTimeText;
+    document.getElementById('taskProgressPercentage').textContent = `${Math.round(progressPercentage)}%`;
+    document.getElementById('taskRemainingTime').textContent = remainingTimeText;
+    
+    // プログレスバーを更新
+    const progressBar = document.querySelector('#taskTimeProgress .progress-bar');
+    if (progressBar) {
+        progressBar.style.width = `${progressPercentage}%`;
+        progressBar.setAttribute('aria-valuenow', totalWorkTime);
+        progressBar.setAttribute('aria-valuemax', targetTime);
+        
+        // 進捗状況に応じて色を変更
+        progressBar.className = 'progress-bar bg-gradient rounded-pill';
+        if (progressPercentage >= 100) {
+            progressBar.classList.add('bg-success');
+        } else if (progressPercentage >= 75) {
+            progressBar.classList.add('bg-info');
+        } else if (progressPercentage >= 50) {
+            progressBar.classList.add('bg-warning');
+        } else {
+            progressBar.classList.add('bg-danger');
+        }
     }
 }
 
@@ -194,12 +237,23 @@ function displaySubtasks(subtasks) {
  */
 function createSubtaskElement(subtask) {
     const div = document.createElement('div');
-    div.className = 'list-group-item list-group-item-action';
+    div.className = 'list-group-item list-group-item-action mb-3 border-0 shadow-sm rounded-3';
     div.style.cursor = 'pointer';
+    div.style.transition = 'all 0.2s ease-in-out';
+    div.setAttribute('data-subtask-id', subtask.subtask_id); // data属性を追加
     
-    // 現在のtask-serviceではprogress（完了率）フィールドを使用
-    const completionRate = subtask.progress || 0;
-    const progressBarClass = completionRate === 100 ? 'bg-success' : 'bg-primary';
+    // ホバー効果を追加
+    div.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-2px)';
+        this.classList.add('shadow');
+        this.classList.remove('shadow-sm');
+    });
+    
+    div.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.classList.remove('shadow');
+        this.classList.add('shadow-sm');
+    });
     
     // 作業実績の表示
     const totalWork = subtask.total_work || 0;
@@ -213,36 +267,65 @@ function createSubtaskElement(subtask) {
         (workHours > 0 ? `${workHours}時間${workMinutes}分` : `${workMinutes}分`) : 
         '0分';
     
+    // 作業量のプログレス計算（100を満点とする）
+    const workProgress = Math.min(totalWork, 100);
+    const workProgressPercentage = workProgress;
+    
     div.innerHTML = `
-        <div class="d-flex w-100 justify-content-between align-items-center">
+        <div class="d-flex w-100 justify-content-between align-items-center p-3">
             <div class="flex-grow-1">
-                <h6 class="mb-1">${subtask.subtask_name}</h6>
-                <div class="progress mb-2" style="height: 20px;">
-                    <div class="progress-bar ${progressBarClass}" role="progressbar" 
-                         style="width: ${completionRate}%" aria-valuenow="${completionRate}" 
-                         aria-valuemin="0" aria-valuemax="100">
-                        ${completionRate}%
+                <!-- サブタスク名と貢献値（横並び） -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0 text-dark fw-bold">${subtask.subtask_name}</h6>
+                    <div class="ms-2">
+                        <span class="badge bg-gradient bg-warning text-dark px-2 py-1 rounded-pill">
+                            <i class="bi bi-star-fill me-1"></i>
+                            ${subtask.contribution_value || 0}
+                        </span>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <small class="text-muted">貢献値: ${subtask.contribution_value || 0}</small>
+                
+                <!-- 累計作業量（プログレスバー付き） -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted fw-semibold">
+                            <i class="bi bi-bar-chart-fill text-primary me-1"></i>
+                            累計作業量
+                        </small>
+                        <span class="badge bg-gradient bg-primary text-white px-2 py-1 rounded-pill">${totalWork}/100</span>
                     </div>
-                    <div class="col-md-6">
-                        <small class="text-muted">累計作業量: <span class="badge bg-warning text-dark">${totalWork}</span></small>
+                    <div class="progress rounded-pill" style="height: 12px;">
+                        <div class="progress-bar bg-gradient bg-primary rounded-pill" role="progressbar" 
+                             style="width: ${workProgressPercentage}%" 
+                             aria-valuenow="${totalWork}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <small class="text-muted">累計作業時間: <span class="badge bg-success">${timeText}</span></small>
+                
+                <!-- 累計作業時間と作業日数（横並び・大きく表示） -->
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="p-3 bg-gradient bg-light border border-success border-opacity-25 rounded-3">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-clock-fill text-success me-2" style="font-size: 1.1em;"></i>
+                                <div class="fw-bold text-success" style="font-size: 1.3em;">${timeText}</div>
+                            </div>
+                            <small class="text-muted fw-semibold">累計作業時間</small>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <small class="text-muted">作業日数: <span class="badge bg-info">${workDays}日</span></small>
+                    <div class="col-6">
+                        <div class="p-3 bg-gradient bg-light border border-info border-opacity-25 rounded-3">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-calendar-check-fill text-info me-2" style="font-size: 1.1em;"></i>
+                                <div class="fw-bold text-info" style="font-size: 1.3em;">${workDays}日</div>
+                            </div>
+                            <small class="text-muted fw-semibold">作業日数</small>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="ms-3">
-                <i class="bi bi-pencil-square"></i>
+            <div class="ms-4 d-flex align-items-center">
+                <i class="bi bi-pencil-square text-primary" style="font-size: 1.5em;"></i>
             </div>
         </div>
     `;
@@ -273,15 +356,90 @@ async function openSubtaskModal(subtask) {
         '0分';
     
     // 作業実績サマリーを表示
-    document.getElementById('totalWorkDisplay').textContent = totalWork;
+    document.getElementById('totalWorkDisplay').textContent = `${totalWork}/100`;
     document.getElementById('totalWorkTimeDisplay').textContent = timeText;
     document.getElementById('workDaysDisplay').textContent = `${workDays}日`;
+    
+    // プログレスバーを更新
+    updateProgressBars(totalWork, totalWorkTime, workDays);
     
     // 作業記録一覧を読み込み
     await loadRecordWorks(subtask.subtask_id);
     
     const modal = new bootstrap.Modal(document.getElementById('subtaskModal'));
     modal.show();
+}
+
+/**
+ * モーダル内のプログレスバーを更新
+ */
+function updateProgressBars(totalWork, totalWorkTime, workDays) {
+    // 作業量のプログレスバー（100を満点とする）
+    const workProgress = Math.min(totalWork, 100);
+    const workProgressBar = document.querySelector('#totalWorkProgress .progress-bar');
+    if (workProgressBar) {
+        workProgressBar.style.width = `${workProgress}%`;
+        workProgressBar.setAttribute('aria-valuenow', totalWork);
+    }
+    
+    // 作業時間は累積値のみ表示（プログレスバーなし）
+    const totalWorkTimeMinutes = document.getElementById('totalWorkTimeMinutes');
+    if (totalWorkTimeMinutes) {
+        totalWorkTimeMinutes.textContent = `(${totalWorkTime}分)`;
+    }
+}
+
+/**
+ * サブタスクデータを再読み込みして表示を更新
+ */
+async function refreshSubtaskData(subtaskId) {
+    try {
+        // 現在選択されているタスクIDを取得
+        const selectedTaskId = document.getElementById('taskSelect').value;
+        if (!selectedTaskId) return;
+        
+        // タスクデータを再読み込み
+        await loadTaskData(selectedTaskId);
+        
+        // モーダルが開いている場合は、サブタスクデータを更新
+        const subtaskIdInput = document.getElementById('subtaskId');
+        if (subtaskIdInput && subtaskIdInput.value === subtaskId) {
+            // 更新されたサブタスクデータを取得
+            const subtasks = await apiCall('task', `/subtasks/task/${selectedTaskId}`, 'GET');
+            const updatedSubtask = subtasks.find(s => s.subtask_id === parseInt(subtaskId));
+            
+            if (updatedSubtask) {
+                // モーダル内の表示を更新
+                const totalWork = updatedSubtask.total_work || 0;
+                const totalWorkTime = updatedSubtask.total_work_time || 0;
+                const workDays = updatedSubtask.work_days || 0;
+                
+                // 作業時間の表示形式を作成
+                const workHours = Math.floor(totalWorkTime / 60);
+                const workMinutes = totalWorkTime % 60;
+                const timeText = totalWorkTime > 0 ? 
+                    (workHours > 0 ? `${workHours}時間${workMinutes}分` : `${workMinutes}分`) : 
+                    '0分';
+                
+                // サマリー表示を更新
+                document.getElementById('totalWorkDisplay').textContent = `${totalWork}/100`;
+                document.getElementById('totalWorkTimeDisplay').textContent = timeText;
+                document.getElementById('workDaysDisplay').textContent = `${workDays}日`;
+                
+                // 作業時間の分数表示も更新
+                const totalWorkTimeMinutes = document.getElementById('totalWorkTimeMinutes');
+                if (totalWorkTimeMinutes) {
+                    totalWorkTimeMinutes.textContent = `(${totalWorkTime}分)`;
+                }
+                
+                // プログレスバーを更新（作業量のみ）
+                updateProgressBars(totalWork, totalWorkTime, workDays);
+            }
+        }
+        
+    } catch (error) {
+        console.error('サブタスクデータ更新エラー:', error);
+    }
 }
 
 /**
@@ -433,6 +591,9 @@ async function saveRecordWork() {
         // 作業記録一覧を再読み込み
         await loadRecordWorks(subtaskId);
         
+        // サブタスクデータを再読み込みして表示を更新
+        await refreshSubtaskData(subtaskId);
+        
         showAlert(recordWorkId ? '作業記録を更新しました。' : '作業記録を作成しました。', 'success');
         
     } catch (error) {
@@ -465,6 +626,9 @@ async function deleteRecordWork() {
         
         // 作業記録一覧を再読み込み
         await loadRecordWorks(subtaskId);
+        
+        // サブタスクデータを再読み込みして表示を更新
+        await refreshSubtaskData(subtaskId);
         
         showAlert('作業記録を削除しました。', 'success');
         
@@ -522,29 +686,6 @@ async function saveSubtask() {
  */
 function hideTaskDetails() {
     document.getElementById('taskDetailsSection').classList.add('d-none');
-}
-
-/**
- * プログレスバーを更新
- */
-function updateProgressBar(subtaskId, progress) {
-    const progressBar = document.querySelector(`[data-subtask-id="${subtaskId}"] .progress-bar`);
-    if (progressBar) {
-        // プログレスバーのアニメーション
-        progressBar.style.transition = 'width 0.5s ease-in-out';
-        progressBar.style.width = `${progress}%`;
-        progressBar.textContent = `${progress}%`;
-        
-        // プログレスバーの色を更新
-        progressBar.className = 'progress-bar';
-        if (progress >= 100) {
-            progressBar.classList.add('bg-success');
-        } else if (progress >= 50) {
-            progressBar.classList.add('bg-info');
-        } else {
-            progressBar.classList.add('bg-warning');
-        }
-    }
 }
 
 /**

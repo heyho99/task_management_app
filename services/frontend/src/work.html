@@ -37,33 +37,64 @@
 
         <!-- 選択されたタスクの詳細 -->
         <div id="taskDetailsSection" class="d-none">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">タスク詳細</h5>
+            <div class="card mb-4 border-0 shadow-sm rounded-3">
+                <div class="card-header bg-gradient bg-primary text-white border-0 rounded-top-3">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-clipboard-check-fill me-2" style="font-size: 1.2em;"></i>
+                        <h5 class="mb-0 fw-bold">タスク詳細</h5>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
+                <div class="card-body p-4">
+                    <!-- タスク名と内容 -->
+                    <div class="mb-4">
+                        <h4 id="taskName" class="fw-bold text-dark mb-2"></h4>
+                        <p id="taskContent" class="text-muted mb-0" style="font-size: 1.1em;"></p>
+                    </div>
+                    
+                    <!-- 日程情報 -->
+                    <div class="row mb-4">
                         <div class="col-md-6">
-                            <h6 id="taskName"></h6>
-                            <p id="taskContent" class="text-muted"></p>
+                            <div class="p-3 bg-light rounded-3 border border-primary border-opacity-25">
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="bi bi-calendar-event text-primary me-2"></i>
+                                    <small class="text-muted fw-semibold">開始日</small>
+                                </div>
+                                <div id="taskStartDate" class="fw-bold text-dark"></div>
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="row">
-                                <div class="col-6">
-                                    <small class="text-muted">開始日</small>
-                                    <div id="taskStartDate"></div>
+                            <div class="p-3 bg-light rounded-3 border border-danger border-opacity-25">
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="bi bi-calendar-x text-danger me-2"></i>
+                                    <small class="text-muted fw-semibold">締切日</small>
                                 </div>
-                                <div class="col-6">
-                                    <small class="text-muted">締切日</small>
-                                    <div id="taskDueDate"></div>
-                                </div>
+                                <div id="taskDueDate" class="fw-bold text-dark"></div>
                             </div>
-                            <div class="row mt-2">
-                                <div class="col-12">
-                                    <small class="text-muted">累計作業時間</small>
-                                    <div id="taskWorkTime" class="fw-bold text-primary">0分</div>
-                                </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 作業時間プログレス -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-clock-history text-success me-2" style="font-size: 1.1em;"></i>
+                                <span class="fw-semibold text-dark">作業時間の進捗</span>
                             </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="badge bg-gradient bg-success px-3 py-2 rounded-pill">
+                                    <span id="taskWorkTime" class="fw-bold">0分</span>
+                                </span>
+                                <span class="text-muted">/ <span id="taskTargetTime" class="fw-bold">--</span></span>
+                            </div>
+                        </div>
+                        <div id="taskTimeProgress" class="progress rounded-pill" style="height: 12px;">
+                            <div class="progress-bar bg-gradient bg-success rounded-pill" role="progressbar" 
+                                 style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <small class="text-muted">進捗率: <span id="taskProgressPercentage" class="fw-semibold">0%</span></small>
+                            <small id="taskRemainingTime" class="text-muted"></small>
                         </div>
                     </div>
                 </div>
@@ -117,19 +148,54 @@
 
                         <!-- 作業実績サマリー -->
                         <div class="mb-4">
-                            <h6 class="mb-2">作業実績サマリー</h6>
+                            <h6 class="mb-3">
+                                <i class="bi bi-graph-up text-primary me-2"></i>作業実績サマリー
+                            </h6>
+                            
+                            <!-- 累計作業量（プログレスバー付き） -->
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <div class="card border-primary">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="bi bi-bar-chart-fill text-primary me-2" style="font-size: 1.5em;"></i>
+                                                <div class="flex-grow-1">
+                                                    <small class="text-muted">累計作業量</small>
+                                                    <div id="totalWorkDisplay" class="fw-bold text-primary" style="font-size: 1.2em;"></div>
+                                                </div>
+                                            </div>
+                                            <div id="totalWorkProgress" class="progress" style="height: 8px;">
+                                                <div class="progress-bar bg-primary" role="progressbar"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 累計作業時間と作業日数（横並び・大きく表示） -->
                             <div class="row">
-                                <div class="col-md-4">
-                                    <label class="form-label">累計作業量</label>
-                                    <div id="totalWorkDisplay" class="form-control-plaintext fw-bold text-primary"></div>
+                                <div class="col-md-6">
+                                    <div class="card border-success h-100">
+                                        <div class="card-body p-4">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="bi bi-clock-fill text-success me-2" style="font-size: 1.3em;"></i>
+                                                <div id="totalWorkTimeDisplay" class="fw-bold text-success" style="font-size: 1.8em;"></div>
+                                            </div>
+                                            <small id="totalWorkTimeMinutes" class="text-muted d-block mb-1"></small>
+                                            <small class="text-muted">累計作業時間</small>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">累計作業時間</label>
-                                    <div id="totalWorkTimeDisplay" class="form-control-plaintext fw-bold text-success"></div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">作業日数</label>
-                                    <div id="workDaysDisplay" class="form-control-plaintext fw-bold text-info"></div>
+                                <div class="col-md-6">
+                                    <div class="card border-info h-100">
+                                        <div class="card-body p-4">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="bi bi-calendar-check-fill text-info me-2" style="font-size: 1.3em;"></i>
+                                                <div id="workDaysDisplay" class="fw-bold text-info" style="font-size: 1.8em;"></div>
+                                            </div>
+                                            <small class="text-muted">作業日数</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
